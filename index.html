@@ -919,8 +919,28 @@
         case '?': // Toggle shortcuts panel
           shortcutsPanel.classList.toggle('visible');
           break;
-        case 'escape': // Close shortcuts panel
-          shortcutsPanel.classList.remove('visible');
+        case 'escape': // Close shortcuts panel or zoom to overview
+          if (shortcutsPanel.classList.contains('visible')) {
+            shortcutsPanel.classList.remove('visible');
+          } else if (nodes.length > 0) {
+            // Zoom to fit entire tree
+            const minX = Math.min(...nodes.map(n => n.x));
+            const maxX = Math.max(...nodes.map(n => n.x + n.width));
+            const minY = Math.min(...nodes.map(n => n.y));
+            const maxY = Math.max(...nodes.map(n => n.y + n.height));
+            
+            const treeWidth = maxX - minX;
+            const treeHeight = maxY - minY;
+            
+            const scaleX = (width - 100) / treeWidth;
+            const scaleY = (height - 100) / treeHeight;
+            const targetZoom = Math.min(1, Math.min(scaleX, scaleY));
+            
+            const targetPanX = (width - treeWidth * targetZoom) / 2 - minX * targetZoom;
+            const targetPanY = 50;
+            
+            animateTo(targetPanX, targetPanY, targetZoom);
+          }
           break;
       }
     });
