@@ -318,6 +318,28 @@
       return [];
     }
 
+    // Extract external embed (links like YouTube, articles, etc.)
+    function getExternalEmbed(embed) {
+      if (!embed) return null;
+      
+      // Direct external link
+      if (embed.$type === 'app.bsky.embed.external#view' && embed.external) {
+        return {
+          uri: embed.external.uri,
+          title: embed.external.title || '',
+          description: embed.external.description || '',
+          thumb: embed.external.thumb
+        };
+      }
+      
+      // Record with media might have external embed
+      if (embed.$type === 'app.bsky.embed.recordWithMedia#view' && embed.media) {
+        return getExternalEmbed(embed.media);
+      }
+      
+      return null;
+    }
+
     // Extract quoted post from embed
     function getQuotedPost(embed) {
       if (!embed) return null;
@@ -405,9 +427,18 @@
       const record = post.record;
       const images = getEmbedImages(post.embed);
       const quotedPost = getQuotedPost(post.embed);
+      const externalEmbed = getExternalEmbed(post.embed);
       
       const textHeight = measureTextHeight(record.text || '', NODE_WIDTH - NODE_PADDING * 2 - AVATAR_SIZE - 12, 14);
       const imageHeight = images.length > 0 ? IMAGE_MAX_HEIGHT + 10 : 0;
+      
+      // Calculate external embed height (thumbnail + title + description)
+      let externalHeight = 0;
+      if (externalEmbed) {
+        const titleHeight = externalEmbed.title ? 18 : 0;
+        const descHeight = externalEmbed.description ? measureTextHeight(externalEmbed.description.slice(0, 100), NODE_WIDTH - NODE_PADDING * 2 - 80, 11) : 0;
+        externalHeight = Math.max(60, titleHeight + descHeight + 20) + 10; // thumbnail height + padding
+      }
       
       // Calculate quoted post height
       let quotedHeight = 0;
@@ -417,7 +448,7 @@
         quotedHeight = 40 + quotedTextHeight + quotedImageHeight + 16; // header + text + images + padding
       }
       
-      const nodeHeight = Math.max(NODE_MIN_HEIGHT, NODE_PADDING * 2 + AVATAR_SIZE + textHeight + imageHeight + quotedHeight + 30);
+      const nodeHeight = Math.max(NODE_MIN_HEIGHT, NODE_PADDING * 2 + AVATAR_SIZE + textHeight + imageHeight + externalHeight + quotedHeight + 30);
 
       const node = {
         id: post.uri,
@@ -428,6 +459,7 @@
         text: record.text || '',
         images: images,
         quotedPost: quotedPost,
+        externalEmbed: externalEmbed,
         likes: post.likeCount || 0,
         replies: post.replyCount || 0,
         reposts: post.repostCount || 0,
@@ -495,6 +527,20 @@
           };
           img.src = imgData.thumb;
         }
+      }
+
+      // Load external embed thumbnail
+      if (externalEmbed && externalEmbed.thumb) {
+        const externalImgKey = node.id + '_external';
+        const img = new Image();
+        img.onload = () => {
+          embedImages.set(externalImgKey, img);
+          render();
+        };
+        img.onerror = () => {
+          console.log('Failed to load external thumb:', externalEmbed.thumb);
+        };
+        img.src = externalEmbed.thumb;
       }
 
       // Process replies
@@ -914,12 +960,91 @@
           }
         }
 
-        // Quoted post
+        // Track current Y position for stacking embeds
         let currentY = textEndY + 8;
         if (node.images.length > 0) {
           currentY += IMAGE_MAX_HEIGHT + 10;
         }
-        
+
+        // External embed (YouTube, links, etc.)
+        if (node.externalEmbed) {
+          const ext = node.externalEmbed;
+          const extX = x + NODE_PADDING;
+          const extW = w - NODE_PADDING * 2;
+          const extPadding = 8;
+          const thumbSize = 60;
+          
+          // Calculate height based on content
+          const titleHeight = ext.title ? 16 : 0;
+          const descHeight = ext.description ? measureTextHeight(ext.description.slice(0, 100), extW - thumbSize - extPadding * 3, 11) : 0;
+          const extH = Math.max(thumbSize + extPadding * 2, titleHeight + descHeight + extPadding * 2 + 8);
+          
+          // External embed background
+          roundRect(extX, currentY, extW, extH, 6);
+          ctx.fillStyle = '#1a1a2e';
+          ctx.fill();
+          ctx.strokeStyle = '#0f3460';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Thumbnail
+          const externalImgKey = node.id + '_external';
+          const extThumb = embedImages.get(externalImgKey);
+          const thumbX = extX + extPadding;
+          const thumbY = currentY + extPadding;
+          
+          if (extThumb) {
+            ctx.save();
+            roundRect(thumbX, thumbY, thumbSize, thumbSize, 4);
+            ctx.clip();
+            ctx.drawImage(extThumb, thumbX, thumbY, thumbSize, thumbSize);
+            ctx.restore();
+          } else {
+            // Placeholder
+            roundRect(thumbX, thumbY, thumbSize, thumbSize, 4);
+            ctx.fillStyle = '#2a2a4e';
+            ctx.fill();
+            ctx.fillStyle = '#666';
+            ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔗', thumbX + thumbSize / 2, thumbY + thumbSize / 2 + 7);
+            ctx.textAlign = 'left';
+          }
+          
+          // Title
+          const extTextX = thumbX + thumbSize + extPadding;
+          const extTextMaxW = extW - thumbSize - extPadding * 3;
+          let extTextY = thumbY + 12;
+          
+          if (ext.title) {
+            ctx.fillStyle = '#1da1f2';
+            ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
+            const truncatedTitle = ext.title.length > 40 ? ext.title.slice(0, 40) + '...' : ext.title;
+            ctx.fillText(truncatedTitle, extTextX, extTextY);
+            extTextY += 16;
+          }
+          
+          // Description
+          if (ext.description) {
+            ctx.fillStyle = '#888';
+            ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+            const truncatedDesc = ext.description.slice(0, 80) + (ext.description.length > 80 ? '...' : '');
+            wrapText(truncatedDesc, extTextX, extTextY, extTextMaxW, 14);
+          }
+          
+          // Store bounds for click detection
+          node.externalLinkBounds = {
+            x: extX,
+            y: currentY,
+            width: extW,
+            height: extH,
+            uri: ext.uri
+          };
+          
+          currentY += extH + 8;
+        }
+
+        // Quoted post
         if (node.quotedPost) {
           const qp = node.quotedPost;
           const qx = x + NODE_PADDING;
@@ -1259,16 +1384,28 @@
         panY = dragStartPanY + (e.offsetY - dragStartY);
         render();
       } else {
-        // Check if hovering over a time link
+        // Check if hovering over a clickable element
         const node = hitTest(e.offsetX, e.offsetY);
-        if (node && node.timeLinkBounds) {
+        if (node) {
           const worldX = (e.offsetX - panX) / zoom;
           const worldY = (e.offsetY - panY) / zoom;
           
-          if (worldX >= node.timeLinkBounds.x && 
+          // Check time link
+          if (node.timeLinkBounds && 
+              worldX >= node.timeLinkBounds.x && 
               worldX <= node.timeLinkBounds.x + node.timeLinkBounds.width &&
               worldY >= node.timeLinkBounds.y && 
               worldY <= node.timeLinkBounds.y + node.timeLinkBounds.height) {
+            canvas.style.cursor = 'pointer';
+            return;
+          }
+          
+          // Check external embed link
+          if (node.externalLinkBounds && 
+              worldX >= node.externalLinkBounds.x && 
+              worldX <= node.externalLinkBounds.x + node.externalLinkBounds.width &&
+              worldY >= node.externalLinkBounds.y && 
+              worldY <= node.externalLinkBounds.y + node.externalLinkBounds.height) {
             canvas.style.cursor = 'pointer';
             return;
           }
@@ -1281,12 +1418,13 @@
       if (isDragging) {
         const moved = Math.abs(e.offsetX - dragStartX) + Math.abs(e.offsetY - dragStartY);
         if (moved < 5) {
-          // It was a click - check if on time link first
+          // It was a click - check clickable elements
           const node = hitTest(e.offsetX, e.offsetY);
           if (node) {
             const worldX = (e.offsetX - panX) / zoom;
             const worldY = (e.offsetY - panY) / zoom;
             
+            // Check time link
             if (node.timeLinkBounds && 
                 worldX >= node.timeLinkBounds.x && 
                 worldX <= node.timeLinkBounds.x + node.timeLinkBounds.width &&
@@ -1297,6 +1435,13 @@
               if (url) {
                 window.open(url, '_blank');
               }
+            } else if (node.externalLinkBounds && 
+                worldX >= node.externalLinkBounds.x && 
+                worldX <= node.externalLinkBounds.x + node.externalLinkBounds.width &&
+                worldY >= node.externalLinkBounds.y && 
+                worldY <= node.externalLinkBounds.y + node.externalLinkBounds.height) {
+              // Clicked on external embed - open the link
+              window.open(node.externalLinkBounds.uri, '_blank');
             } else {
               // Clicked elsewhere on node - center and zoom
               selectAndCenter(node);
