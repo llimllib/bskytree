@@ -287,6 +287,10 @@
     const V_SPACING = 30;
     const IMAGE_MAX_HEIGHT = 180;
 
+    // Tree limits to prevent runaway threads
+    const MAX_NODES = 500;
+    const MAX_DEPTH = 50;
+
     function resizeCanvas() {
       const container = canvas.parentElement;
       width = container.clientWidth;
@@ -471,10 +475,17 @@
     }
 
     // Build node tree from API response
+    let nodeCount = 0;
     function buildTree(thread, parent = null, depth = 0, isReskeetTree = false) {
       if (!thread || thread.$type === 'app.bsky.feed.defs#blockedPost' || thread.$type === 'app.bsky.feed.defs#notFoundPost') {
         return null;
       }
+
+      // Enforce limits
+      if (depth > MAX_DEPTH || nodeCount >= MAX_NODES) {
+        return null;
+      }
+      nodeCount++;
 
       const post = thread.post;
       const author = post.author;
@@ -1380,7 +1391,11 @@
           }
           
           // Build the tree - use a flag to indicate it's a reskeet tree
+          // Don't reset nodeCount - we want to limit total nodes across all trees
           const reskeetRoot = buildTree(fullRoot, null, 0, true);
+          
+          // Stop loading more reskeet trees if we've hit the limit
+          if (nodeCount >= MAX_NODES) break;
           if (!reskeetRoot) continue;
           
           // Mark all nodes in this tree as loaded
@@ -1657,11 +1672,14 @@
           }
         }
         
+        nodeCount = 0; // Reset node count before building tree
         rootNode = buildTree(root);
         
         if (!rootNode) {
           throw new Error('Could not build thread tree');
         }
+        
+        const limitReached = nodeCount >= MAX_NODES;
 
         nodes = layoutTree(rootNode);
         nodes = getVisibleNodes(rootNode);
@@ -1704,8 +1722,14 @@
 
         const totalPosts = allNodes.length;
         const reskeetCount = reskeetTrees.length;
-        statusEl.textContent = `Loaded ${nodes.length} posts` + 
-          (reskeetCount > 0 ? ` + ${reskeetCount} quoted thread${reskeetCount > 1 ? 's' : ''} (${totalPosts - nodes.length} posts)` : '');
+        let statusText = `Loaded ${nodes.length} posts`;
+        if (reskeetCount > 0) {
+          statusText += ` + ${reskeetCount} quoted thread${reskeetCount > 1 ? 's' : ''} (${totalPosts - nodes.length} posts)`;
+        }
+        if (limitReached) {
+          statusText += ` (limited to ${MAX_NODES} nodes)`;
+        }
+        statusEl.textContent = statusText;
         render();
       } catch (err) {
         statusEl.className = 'status error';
