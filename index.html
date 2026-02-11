@@ -171,10 +171,10 @@
         <tr><td colspan="2" class="section">Panning</td></tr>
         <tr><td>W A S D</td><td>Pan up/left/down/right</td></tr>
         <tr><td colspan="2" class="section">Navigation</td></tr>
-        <tr><td>H</td><td>Left sibling</td></tr>
-        <tr><td>J</td><td>First child</td></tr>
-        <tr><td>K</td><td>Parent</td></tr>
-        <tr><td>L</td><td>Right sibling</td></tr>
+        <tr><td>H / ←</td><td>Left sibling</td></tr>
+        <tr><td>J / ↓</td><td>Child</td></tr>
+        <tr><td>K / ↑</td><td>Parent</td></tr>
+        <tr><td>L / →</td><td>Right sibling</td></tr>
         <tr><td>G</td><td>Jump to root</td></tr>
         <tr><td>Enter</td><td>Center &amp; zoom focused node</td></tr>
         <tr><td>?</td><td>Toggle this panel</td></tr>
@@ -823,7 +823,10 @@
 
     loadBtn.addEventListener('click', loadThread);
     urlInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') loadThread();
+      if (e.key === 'Enter') {
+        loadThread();
+        urlInput.blur();
+      }
     });
 
     // Shortcuts panel
@@ -869,8 +872,9 @@
           render();
           break;
 
-        // HJKL for tree navigation
-        case 'h': // Left sibling
+        // HJKL / Arrow keys for tree navigation
+        case 'h':
+        case 'arrowleft': // Left sibling
           if (selectedNode && selectedNode.parent) {
             const siblings = selectedNode.parent.children;
             const idx = siblings.indexOf(selectedNode);
@@ -879,7 +883,8 @@
             }
           }
           break;
-        case 'l': // Right sibling
+        case 'l':
+        case 'arrowright': // Right sibling
           if (selectedNode && selectedNode.parent) {
             const siblings = selectedNode.parent.children;
             const idx = siblings.indexOf(selectedNode);
@@ -888,13 +893,15 @@
             }
           }
           break;
-        case 'j': // Middle child
+        case 'j':
+        case 'arrowdown': // Middle child
           if (selectedNode && selectedNode.children.length > 0 && !selectedNode.collapsed) {
             const midIdx = Math.floor(selectedNode.children.length / 2);
             selectAndCenter(selectedNode.children[midIdx]);
           }
           break;
-        case 'k': // Parent
+        case 'k':
+        case 'arrowup': // Parent
           if (selectedNode && selectedNode.parent) {
             selectAndCenter(selectedNode.parent);
           }
