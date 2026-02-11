@@ -162,6 +162,54 @@
       text-transform: uppercase;
       padding-top: 10px;
     }
+
+    .video-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .video-overlay.visible {
+      display: flex;
+    }
+
+    .video-container {
+      position: relative;
+      width: 80%;
+      max-width: 960px;
+      aspect-ratio: 16 / 9;
+    }
+
+    .video-container iframe {
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+    }
+
+    .video-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .video-close:hover {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -180,6 +228,12 @@
       • <a id="shortcutsLink">Keyboard shortcuts</a>
       • <a href="https://github.com/llimllib/bskytree" target="_blank">Source</a>
       • Created by <a href="https://bsky.app/profile/billmill.org" target="_blank">@billmill.org</a>
+    </div>
+    <div class="video-overlay" id="videoOverlay">
+      <div class="video-container">
+        <button class="video-close" id="videoClose">✕</button>
+        <iframe id="videoFrame" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
     </div>
     <div class="shortcuts-panel" id="shortcutsPanel">
       <h3>Keyboard Shortcuts</h3>
@@ -637,6 +691,52 @@
       return allNodes;
     }
 
+    // Extract YouTube video ID from various URL formats
+    function getYouTubeVideoId(url) {
+      if (!url) return null;
+      const patterns = [
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/
+      ];
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+      }
+      return null;
+    }
+
+    // Video overlay elements
+    const videoOverlay = document.getElementById('videoOverlay');
+    const videoFrame = document.getElementById('videoFrame');
+    const videoClose = document.getElementById('videoClose');
+
+    function showVideoPlayer(videoId) {
+      videoFrame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      videoOverlay.classList.add('visible');
+    }
+
+    function hideVideoPlayer() {
+      videoOverlay.classList.remove('visible');
+      videoFrame.src = '';
+    }
+
+    videoClose.addEventListener('click', hideVideoPlayer);
+    videoOverlay.addEventListener('click', (e) => {
+      if (e.target === videoOverlay) {
+        hideVideoPlayer();
+      }
+    });
+
+    // Close video on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && videoOverlay.classList.contains('visible')) {
+        hideVideoPlayer();
+        e.stopPropagation();
+      }
+    });
+
     // Format time for display
     function formatTime(isoString) {
       const date = new Date(isoString);
@@ -993,12 +1093,36 @@
           const thumbX = extX + extPadding;
           const thumbY = currentY + extPadding;
           
+          const isYouTube = getYouTubeVideoId(ext.uri) !== null;
+          
           if (extThumb) {
             ctx.save();
             roundRect(thumbX, thumbY, thumbSize, thumbSize, 4);
             ctx.clip();
             ctx.drawImage(extThumb, thumbX, thumbY, thumbSize, thumbSize);
             ctx.restore();
+            
+            // Draw play button overlay for YouTube videos
+            if (isYouTube) {
+              const playX = thumbX + thumbSize / 2;
+              const playY = thumbY + thumbSize / 2;
+              const playRadius = 14;
+              
+              // Semi-transparent circle
+              ctx.beginPath();
+              ctx.arc(playX, playY, playRadius, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+              ctx.fill();
+              
+              // Play triangle
+              ctx.beginPath();
+              ctx.moveTo(playX - 5, playY - 7);
+              ctx.lineTo(playX - 5, playY + 7);
+              ctx.lineTo(playX + 7, playY);
+              ctx.closePath();
+              ctx.fillStyle = '#fff';
+              ctx.fill();
+            }
           } else {
             // Placeholder
             roundRect(thumbX, thumbY, thumbSize, thumbSize, 4);
@@ -1019,7 +1143,14 @@
           if (ext.title) {
             ctx.fillStyle = '#1da1f2';
             ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
-            const truncatedTitle = ext.title.length > 40 ? ext.title.slice(0, 40) + '...' : ext.title;
+            // Truncate title to fit available width
+            let truncatedTitle = ext.title;
+            while (ctx.measureText(truncatedTitle).width > extTextMaxW && truncatedTitle.length > 0) {
+              truncatedTitle = truncatedTitle.slice(0, -1);
+            }
+            if (truncatedTitle.length < ext.title.length) {
+              truncatedTitle = truncatedTitle.slice(0, -3) + '...';
+            }
             ctx.fillText(truncatedTitle, extTextX, extTextY);
             extTextY += 16;
           }
@@ -1440,8 +1571,14 @@
                 worldX <= node.externalLinkBounds.x + node.externalLinkBounds.width &&
                 worldY >= node.externalLinkBounds.y && 
                 worldY <= node.externalLinkBounds.y + node.externalLinkBounds.height) {
-              // Clicked on external embed - open the link
-              window.open(node.externalLinkBounds.uri, '_blank');
+              // Clicked on external embed - check if it's a YouTube video
+              const videoId = getYouTubeVideoId(node.externalLinkBounds.uri);
+              if (videoId) {
+                showVideoPlayer(videoId);
+              } else {
+                // Not YouTube, open in new tab
+                window.open(node.externalLinkBounds.uri, '_blank');
+              }
             } else {
               // Clicked elsewhere on node - center and zoom
               selectAndCenter(node);
