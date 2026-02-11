@@ -343,8 +343,26 @@
       }
       
       // Record with media (quote + images on the quoting post)
-      if (embed.$type === 'app.bsky.embed.recordWithMedia#view' && embed.record) {
-        return getQuotedPost(embed.record);
+      // The structure is: embed.record.record (nested)
+      if (embed.$type === 'app.bsky.embed.recordWithMedia#view' && embed.record?.record) {
+        const rec = embed.record.record;
+        if (rec.$type === 'app.bsky.embed.record#viewRecord') {
+          let quotedImages = [];
+          if (rec.embeds && rec.embeds.length > 0) {
+            for (const e of rec.embeds) {
+              quotedImages = quotedImages.concat(getEmbedImages(e));
+            }
+          }
+          return {
+            did: rec.author.did,
+            handle: rec.author.handle,
+            displayName: rec.author.displayName || rec.author.handle,
+            avatar: rec.author.avatar,
+            text: rec.value?.text || '',
+            images: quotedImages,
+            uri: rec.uri
+          };
+        }
       }
       
       return null;
