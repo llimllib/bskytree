@@ -465,10 +465,33 @@
       return node;
     }
 
-    // Find root of thread (traverse parents)
+    // Find root of thread (traverse parents) and merge reply trees
+    // The issue: when we fetch a post that's a reply, the API gives us:
+    // - The post with its full replies subtree
+    // - Parent posts with potentially incomplete/different replies arrays
+    // We need to merge the loaded post's subtree into its parent's replies
     function findRoot(thread) {
       if (thread.parent && thread.parent.$type !== 'app.bsky.feed.defs#blockedPost' && thread.parent.$type !== 'app.bsky.feed.defs#notFoundPost') {
-        return findRoot(thread.parent);
+        // Merge current thread into parent's replies to preserve full subtree
+        const parent = thread.parent;
+        if (!parent.replies) {
+          parent.replies = [];
+        }
+        
+        // Find if this thread exists in parent's replies and replace/add it
+        const existingIdx = parent.replies.findIndex(r => 
+          r.post && thread.post && r.post.uri === thread.post.uri
+        );
+        
+        if (existingIdx >= 0) {
+          // Replace with our more complete version (has full reply subtree)
+          parent.replies[existingIdx] = thread;
+        } else {
+          // Add it if not present
+          parent.replies.push(thread);
+        }
+        
+        return findRoot(parent);
       }
       return thread;
     }
@@ -952,7 +975,20 @@
         statusEl.textContent = 'Building tree...';
         
         // Find the root of the conversation
-        const root = findRoot(thread);
+        let root = findRoot(thread);
+        
+        // If we navigated up to a parent, fetch the root's full thread
+        // to get all reply branches, not just the one we came from
+        if (root !== thread && root.post) {
+          statusEl.textContent = 'Fetching full thread from root...';
+          const rootUri = root.post.uri;
+          const rootMatch = rootUri.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/);
+          if (rootMatch) {
+            const rootThread = await fetchThread(rootMatch[1], rootMatch[2]);
+            root = rootThread;
+          }
+        }
+        
         rootNode = buildTree(root);
         
         if (!rootNode) {
