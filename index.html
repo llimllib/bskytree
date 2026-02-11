@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bluesky Thread Tree</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .input-bar {
+      padding: 12px 16px;
+      background: #16213e;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid #0f3460;
+    }
+
+    .input-bar input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      background: #1a1a2e;
+      color: #eee;
+      font-size: 14px;
+    }
+
+    .input-bar input:focus {
+      outline: none;
+      border-color: #1da1f2;
+    }
+
+    .input-bar button {
+      padding: 10px 24px;
+      background: #1da1f2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .input-bar button:hover {
+      background: #1a91da;
+    }
+
+    .input-bar button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #888;
+      min-width: 200px;
+    }
+
+    .status.error {
+      color: #e74c3c;
+    }
+
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .help {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .help a {
+      color: #1da1f2;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .help a:hover {
+      text-decoration: underline;
+    }
+
+    .shortcuts-panel {
+      display: none;
+      position: absolute;
+      bottom: 40px;
+      left: 12px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      min-width: 240px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .shortcuts-panel.visible {
+      display: block;
+    }
+
+    .shortcuts-panel h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .shortcuts-panel table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .shortcuts-panel td {
+      padding: 4px 0;
+    }
+
+    .shortcuts-panel td:first-child {
+      color: #1da1f2;
+      font-family: monospace;
+      width: 80px;
+    }
+
+    .shortcuts-panel td:last-child {
+      color: #aaa;
+    }
+
+    .shortcuts-panel .section {
+      color: #666;
+      font-size: 11px;
+      text-transform: uppercase;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="input-bar">
+    <input type="text" id="urlInput" placeholder="Paste Bluesky post URL (e.g., https://bsky.app/profile/user.bsky.social/post/abc123)">
+    <button id="loadBtn">Load Thread</button>
+    <span class="status" id="status"></span>
+  </div>
+  <div class="canvas-container">
+    <canvas id="canvas"></canvas>
+    <div class="help">
+      Scroll to zoom • Drag to pan • Click node to focus
+      • <a id="shortcutsLink">Keyboard shortcuts</a>
+    </div>
+    <div class="shortcuts-panel" id="shortcutsPanel">
+      <h3>Keyboard Shortcuts</h3>
+      <table>
+        <tr><td colspan="2" class="section">Panning</td></tr>
+        <tr><td>W A S D</td><td>Pan up/left/down/right</td></tr>
+        <tr><td colspan="2" class="section">Navigation</td></tr>
+        <tr><td>H</td><td>Left sibling</td></tr>
+        <tr><td>J</td><td>First child</td></tr>
+        <tr><td>K</td><td>Parent</td></tr>
+        <tr><td>L</td><td>Right sibling</td></tr>
+        <tr><td>G</td><td>Jump to root</td></tr>
+        <tr><td>Enter</td><td>Center &amp; zoom focused node</td></tr>
+        <tr><td>?</td><td>Toggle this panel</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const urlInput = document.getElementById('urlInput');
+    const loadBtn = document.getElementById('loadBtn');
+    const statusEl = document.getElementById('status');
+
+    // Canvas state
+    let width, height;
+    let panX = 0, panY = 0;
+    let zoom = 1;
+    let isDragging = false;
+    let dragStartX, dragStartY;
+    let dragStartPanX, dragStartPanY;
+
+    // Tree state
+    let nodes = [];
+    let avatarImages = new Map();
+    let embedImages = new Map();
+
+    // Node dimensions
+    const NODE_WIDTH = 320;
+    const NODE_MIN_HEIGHT = 100;
+    const NODE_PADDING = 12;
+    const AVATAR_SIZE = 40;
+    const H_SPACING = 20;
+    const V_SPACING = 30;
+    const IMAGE_MAX_HEIGHT = 180;
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      width = container.clientWidth;
+      height = container.clientHeight;
+      canvas.width = width * devicePixelRatio;
+      canvas.height = height * devicePixelRatio;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      render();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Parse Bluesky URL
+    function parseUrl(url) {
+      // Handle various URL formats
+      const match = url.match(/bsky\.app\/profile\/([^/]+)\/post\/([a-zA-Z0-9]+)/);
+      if (!match) throw new Error('Invalid Bluesky URL format');
+      return { handle: match[1], postId: match[2] };
+    }
+
+    // Resolve handle to DID
+    async function resolveHandle(handle) {
+      // If it's already a DID, return it
+      if (handle.startsWith('did:')) return handle;
+      
+      const res = await fetch(`https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+      if (!res.ok) throw new Error('Could not resolve handle');
+      const data = await res.json();
+      return data.did;
+    }
+
+    // Fetch thread
+    async function fetchThread(did, postId) {
+      const uri = `at://${did}/app.bsky.feed.post/${postId}`;
+      const res = await fetch(`https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}&depth=100&parentHeight=100`);
+      if (!res.ok) throw new Error('Could not fetch thread');
+      const data = await res.json();
+      return data.thread;
+    }
+
+    // Measure text height for wrapping
+    function measureTextHeight(text, maxWidth, fontSize) {
+      ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      const words = text.split(' ');
+      let lines = 1;
+      let currentLine = '';
+      
+      for (const word of words) {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine) {
+          lines++;
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      return lines * (fontSize + 4);
+    }
+
+    // Extract images from embed
+    function getEmbedImages(embed) {
+      if (!embed) return [];
+      
+      // Direct images
+      if (embed.$type === 'app.bsky.embed.images#view') {
+        return embed.images.map(img => ({
+          thumb: img.thumb,
+          fullsize: img.fullsize,
+          alt: img.alt,
+          aspectRatio: img.aspectRatio
+        }));
+      }
+      
+      // Record with media (quote post with images)
+      if (embed.$type === 'app.bsky.embed.recordWithMedia#view' && embed.media) {
+        return getEmbedImages(embed.media);
+      }
+      
+      return [];
+    }
+
+    // Build node tree from API response
+    function buildTree(thread, parent = null, depth = 0) {
+      if (!thread || thread.$type === 'app.bsky.feed.defs#blockedPost' || thread.$type === 'app.bsky.feed.defs#notFoundPost') {
+        return null;
+      }
+
+      const post = thread.post;
+      const author = post.author;
+      const record = post.record;
+      const images = getEmbedImages(post.embed);
+      
+      const textHeight = measureTextHeight(record.text || '', NODE_WIDTH - NODE_PADDING * 2 - AVATAR_SIZE - 12, 14);
+      const imageHeight = images.length > 0 ? IMAGE_MAX_HEIGHT + 10 : 0;
+      const nodeHeight = Math.max(NODE_MIN_HEIGHT, NODE_PADDING * 2 + AVATAR_SIZE + textHeight + imageHeight + 30);
+
+      const node = {
+        id: post.uri,
+        did: author.did,
+        handle: author.handle,
+        displayName: author.displayName || author.handle,
+        avatar: author.avatar,
+        text: record.text || '',
+        images: images,
+        likes: post.likeCount || 0,
+        replies: post.replyCount || 0,
+        reposts: post.repostCount || 0,
+        createdAt: record.createdAt,
+        uri: post.uri,
+        depth,
+        parent,
+        children: [],
+        x: 0,
+        y: 0,
+        width: NODE_WIDTH,
+        height: nodeHeight,
+        collapsed: false
+      };
+
+      // Load avatar
+      if (author.avatar) {
+        const img = new Image();
+        img.onload = () => {
+          avatarImages.set(author.did, img);
+          render();
+        };
+        img.src = author.avatar;
+      }
+
+      // Load embed images (no crossOrigin needed, we just display them)
+      for (let i = 0; i < images.length; i++) {
+        const imgData = images[i];
+        const img = new Image();
+        img.onload = () => {
+          if (!embedImages.has(node.id)) {
+            embedImages.set(node.id, []);
+          }
+          embedImages.get(node.id)[i] = img;
+          render();
+        };
+        img.onerror = () => {
+          console.log('Failed to load image:', imgData.thumb);
+        };
+        img.src = imgData.thumb;
+      }
+
+      // Process replies
+      if (thread.replies && thread.replies.length > 0) {
+        for (const reply of thread.replies) {
+          const childNode = buildTree(reply, node, depth + 1);
+          if (childNode) {
+            node.children.push(childNode);
+          }
+        }
+        // Sort replies by creation time
+        node.children.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+
+      return node;
+    }
+
+    // Find root of thread (traverse parents)
+    function findRoot(thread) {
+      if (thread.parent && thread.parent.$type !== 'app.bsky.feed.defs#blockedPost' && thread.parent.$type !== 'app.bsky.feed.defs#notFoundPost') {
+        return findRoot(thread.parent);
+      }
+      return thread;
+    }
+
+    // Layout tree nodes
+    function layoutTree(root) {
+      if (!root) return [];
+      
+      const allNodes = [];
+      
+      // First pass: collect all nodes and calculate subtree widths
+      function calcWidth(node) {
+        if (node.collapsed || node.children.length === 0) {
+          node.subtreeWidth = node.width;
+        } else {
+          let childrenWidth = 0;
+          for (const child of node.children) {
+            calcWidth(child);
+            childrenWidth += child.subtreeWidth + H_SPACING;
+          }
+          childrenWidth -= H_SPACING;
+          node.subtreeWidth = Math.max(node.width, childrenWidth);
+        }
+        allNodes.push(node);
+      }
+      
+      calcWidth(root);
+      
+      // Second pass: assign positions
+      function positionNode(node, x, y) {
+        node.y = y;
+        
+        if (node.collapsed || node.children.length === 0) {
+          node.x = x + (node.subtreeWidth - node.width) / 2;
+        } else {
+          let childX = x;
+          for (const child of node.children) {
+            positionNode(child, childX, y + node.height + V_SPACING);
+            childX += child.subtreeWidth + H_SPACING;
+          }
+          // Center parent over children
+          const firstChild = node.children[0];
+          const lastChild = node.children[node.children.length - 1];
+          node.x = (firstChild.x + lastChild.x + lastChild.width) / 2 - node.width / 2;
+        }
+      }
+      
+      positionNode(root, 0, 0);
+      
+      return allNodes;
+    }
+
+    // Draw rounded rectangle
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // Draw text with word wrap
+    function wrapText(text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      let currentY = y;
+      
+      for (const word of words) {
+        const testLine = line ? line + ' ' + word : word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && line) {
+          ctx.fillText(line, x, currentY);
+          line = word;
+          currentY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, currentY);
+      return currentY + lineHeight;
+    }
+
+    // Render everything
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+      
+      if (nodes.length === 0) {
+        ctx.fillStyle = '#666';
+        ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Paste a Bluesky post URL and click Load', width / 2, height / 2);
+        ctx.textAlign = 'left';
+        return;
+      }
+
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(zoom, zoom);
+
+      // Draw edges first
+      ctx.strokeStyle = '#0f3460';
+      ctx.lineWidth = 2;
+      for (const node of nodes) {
+        if (!node.collapsed) {
+          for (const child of node.children) {
+            const startX = node.x + node.width / 2;
+            const startY = node.y + node.height;
+            const endX = child.x + child.width / 2;
+            const endY = child.y;
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.bezierCurveTo(
+              startX, startY + V_SPACING / 2,
+              endX, endY - V_SPACING / 2,
+              endX, endY
+            );
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw nodes
+      for (const node of nodes) {
+        const x = node.x;
+        const y = node.y;
+        const w = node.width;
+        const h = node.height;
+
+        // Node background
+        roundRect(x, y, w, h, 8);
+        ctx.fillStyle = '#16213e';
+        ctx.fill();
+        ctx.strokeStyle = node === selectedNode ? '#1da1f2' : '#0f3460';
+        ctx.lineWidth = node === selectedNode ? 3 : 1;
+        ctx.stroke();
+
+        // Avatar
+        const avatarX = x + NODE_PADDING;
+        const avatarY = y + NODE_PADDING;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + AVATAR_SIZE / 2, avatarY + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        
+        const avatarImg = avatarImages.get(node.did);
+        if (avatarImg) {
+          ctx.drawImage(avatarImg, avatarX, avatarY, AVATAR_SIZE, AVATAR_SIZE);
+        } else {
+          ctx.fillStyle = '#1da1f2';
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Display name
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
+        const nameX = avatarX + AVATAR_SIZE + 10;
+        ctx.fillText(node.displayName.slice(0, 25), nameX, avatarY + 16);
+
+        // Handle
+        ctx.fillStyle = '#888';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('@' + node.handle.slice(0, 28), nameX, avatarY + 32);
+
+        // Post text
+        ctx.fillStyle = '#ddd';
+        ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+        const textX = x + NODE_PADDING;
+        const textY = avatarY + AVATAR_SIZE + 20;
+        const textMaxWidth = w - NODE_PADDING * 2;
+        const textEndY = wrapText(node.text, textX, textY, textMaxWidth, 18);
+
+        // Embed images
+        if (node.images.length > 0) {
+          const nodeImages = embedImages.get(node.id) || [];
+          const imgY = textEndY + 8;
+          const imgAreaWidth = w - NODE_PADDING * 2;
+          const imgGap = 4;
+          
+          if (node.images.length === 1 && nodeImages[0]) {
+            // Single image - full width
+            const img = nodeImages[0];
+            const aspectRatio = node.images[0].aspectRatio;
+            let imgW = imgAreaWidth;
+            let imgH = IMAGE_MAX_HEIGHT;
+            
+            if (aspectRatio) {
+              const ratio = aspectRatio.width / aspectRatio.height;
+              if (imgW / ratio > imgH) {
+                imgW = imgH * ratio;
+              } else {
+                imgH = imgW / ratio;
+              }
+            }
+            
+            ctx.save();
+            roundRect(textX, imgY, imgW, Math.min(imgH, IMAGE_MAX_HEIGHT), 6);
+            ctx.clip();
+            ctx.drawImage(img, textX, imgY, imgW, imgH);
+            ctx.restore();
+          } else if (node.images.length > 1) {
+            // Multiple images - grid
+            const cols = Math.min(2, node.images.length);
+            const singleW = (imgAreaWidth - imgGap * (cols - 1)) / cols;
+            const singleH = IMAGE_MAX_HEIGHT / 2;
+            
+            for (let i = 0; i < Math.min(4, node.images.length); i++) {
+              if (nodeImages[i]) {
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const ix = textX + col * (singleW + imgGap);
+                const iy = imgY + row * (singleH + imgGap);
+                
+                ctx.save();
+                roundRect(ix, iy, singleW, singleH, 4);
+                ctx.clip();
+                ctx.drawImage(nodeImages[i], ix, iy, singleW, singleH);
+                ctx.restore();
+              }
+            }
+          }
+        }
+
+        // Stats bar
+        const statsY = y + h - NODE_PADDING - 4;
+        ctx.fillStyle = '#666';
+        ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(`♡ ${node.likes}  ⟲ ${node.reposts}  💬 ${node.replies}`, textX, statsY);
+
+        // Collapse indicator
+        if (node.children.length > 0) {
+          const indicator = node.collapsed ? `+${countDescendants(node)}` : '−';
+          ctx.fillStyle = '#1da1f2';
+          ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText(indicator, x + w - NODE_PADDING, statsY);
+          ctx.textAlign = 'left';
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function countDescendants(node) {
+      let count = node.children.length;
+      for (const child of node.children) {
+        count += countDescendants(child);
+      }
+      return count;
+    }
+
+    // Get visible nodes (excluding collapsed children)
+    function getVisibleNodes(root) {
+      const visible = [];
+      function traverse(node) {
+        visible.push(node);
+        if (!node.collapsed) {
+          for (const child of node.children) {
+            traverse(child);
+          }
+        }
+      }
+      if (root) traverse(root);
+      return visible;
+    }
+
+    // Hit test
+    function hitTest(screenX, screenY) {
+      const x = (screenX - panX) / zoom;
+      const y = (screenY - panY) / zoom;
+      
+      for (const node of nodes) {
+        if (x >= node.x && x <= node.x + node.width &&
+            y >= node.y && y <= node.y + node.height) {
+          return node;
+        }
+      }
+      return null;
+    }
+
+    // Event handlers
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const mouseX = e.offsetX;
+      const mouseY = e.offsetY;
+      
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.1, Math.min(3, zoom * zoomFactor));
+      
+      // Zoom toward mouse position
+      panX = mouseX - (mouseX - panX) * (newZoom / zoom);
+      panY = mouseY - (mouseY - panY) * (newZoom / zoom);
+      zoom = newZoom;
+      
+      render();
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragStartX = e.offsetX;
+      dragStartY = e.offsetY;
+      dragStartPanX = panX;
+      dragStartPanY = panY;
+      canvas.style.cursor = 'grabbing';
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        panX = dragStartPanX + (e.offsetX - dragStartX);
+        panY = dragStartPanY + (e.offsetY - dragStartY);
+        render();
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (isDragging) {
+        const moved = Math.abs(e.offsetX - dragStartX) + Math.abs(e.offsetY - dragStartY);
+        if (moved < 5) {
+          // It was a click - center and zoom to the node
+          const node = hitTest(e.offsetX, e.offsetY);
+          if (node) {
+            selectAndCenter(node);
+          }
+        }
+      }
+      isDragging = false;
+      canvas.style.cursor = 'default';
+    });
+
+    // Smooth animation to target pan/zoom
+    function animateTo(targetPanX, targetPanY, targetZoom) {
+      const startPanX = panX;
+      const startPanY = panY;
+      const startZoom = zoom;
+      const duration = 300;
+      const startTime = performance.now();
+
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        // Ease out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        panX = startPanX + (targetPanX - startPanX) * eased;
+        panY = startPanY + (targetPanY - startPanY) * eased;
+        zoom = startZoom + (targetZoom - startZoom) * eased;
+
+        render();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+      canvas.style.cursor = 'default';
+    });
+
+    // Load thread
+    let rootNode = null;
+
+    async function loadThread() {
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      loadBtn.disabled = true;
+      statusEl.className = 'status';
+      statusEl.textContent = 'Loading...';
+      nodes = [];
+      avatarImages.clear();
+      embedImages.clear();
+      render();
+
+      try {
+        const { handle, postId } = parseUrl(url);
+        updateHash(handle, postId);
+        statusEl.textContent = 'Resolving handle...';
+        
+        const did = await resolveHandle(handle);
+        statusEl.textContent = 'Fetching thread...';
+        
+        const thread = await fetchThread(did, postId);
+        statusEl.textContent = 'Building tree...';
+        
+        // Find the root of the conversation
+        const root = findRoot(thread);
+        rootNode = buildTree(root);
+        
+        if (!rootNode) {
+          throw new Error('Could not build thread tree');
+        }
+
+        nodes = layoutTree(rootNode);
+        nodes = getVisibleNodes(rootNode);
+        layoutTree(rootNode);
+        nodes = getVisibleNodes(rootNode);
+        
+        // Select root node
+        selectedNode = rootNode;
+
+        // Center the tree
+        const minX = Math.min(...nodes.map(n => n.x));
+        const maxX = Math.max(...nodes.map(n => n.x + n.width));
+        const minY = Math.min(...nodes.map(n => n.y));
+        const maxY = Math.max(...nodes.map(n => n.y + n.height));
+        
+        const treeWidth = maxX - minX;
+        const treeHeight = maxY - minY;
+        
+        // Fit tree in view
+        const scaleX = (width - 100) / treeWidth;
+        const scaleY = (height - 100) / treeHeight;
+        zoom = Math.min(1, Math.min(scaleX, scaleY));
+        
+        panX = (width - treeWidth * zoom) / 2 - minX * zoom;
+        panY = 50;
+
+        statusEl.textContent = `Loaded ${nodes.length} posts`;
+        render();
+      } catch (err) {
+        statusEl.className = 'status error';
+        statusEl.textContent = err.message;
+        console.error(err);
+      } finally {
+        loadBtn.disabled = false;
+      }
+    }
+
+    loadBtn.addEventListener('click', loadThread);
+    urlInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') loadThread();
+    });
+
+    // Shortcuts panel
+    const shortcutsLink = document.getElementById('shortcutsLink');
+    const shortcutsPanel = document.getElementById('shortcutsPanel');
+
+    shortcutsLink.addEventListener('click', () => {
+      shortcutsPanel.classList.toggle('visible');
+    });
+
+    // Close panel when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!shortcutsPanel.contains(e.target) && e.target !== shortcutsLink) {
+        shortcutsPanel.classList.remove('visible');
+      }
+    });
+
+    // Keyboard navigation
+    let selectedNode = null;
+
+    document.addEventListener('keydown', (e) => {
+      // Ignore if typing in input
+      if (e.target === urlInput) return;
+
+      const PAN_SPEED = 50;
+
+      switch (e.key.toLowerCase()) {
+        // WASD for panning
+        case 'w':
+          panY += PAN_SPEED;
+          render();
+          break;
+        case 's':
+          panY -= PAN_SPEED;
+          render();
+          break;
+        case 'a':
+          panX += PAN_SPEED;
+          render();
+          break;
+        case 'd':
+          panX -= PAN_SPEED;
+          render();
+          break;
+
+        // HJKL for tree navigation
+        case 'h': // Left sibling
+          if (selectedNode && selectedNode.parent) {
+            const siblings = selectedNode.parent.children;
+            const idx = siblings.indexOf(selectedNode);
+            if (idx > 0) {
+              selectAndCenter(siblings[idx - 1]);
+            }
+          }
+          break;
+        case 'l': // Right sibling
+          if (selectedNode && selectedNode.parent) {
+            const siblings = selectedNode.parent.children;
+            const idx = siblings.indexOf(selectedNode);
+            if (idx < siblings.length - 1) {
+              selectAndCenter(siblings[idx + 1]);
+            }
+          }
+          break;
+        case 'j': // Middle child
+          if (selectedNode && selectedNode.children.length > 0 && !selectedNode.collapsed) {
+            const midIdx = Math.floor(selectedNode.children.length / 2);
+            selectAndCenter(selectedNode.children[midIdx]);
+          }
+          break;
+        case 'k': // Parent
+          if (selectedNode && selectedNode.parent) {
+            selectAndCenter(selectedNode.parent);
+          }
+          break;
+        case 'g': // Jump to root
+          if (rootNode) {
+            selectAndCenter(rootNode);
+          }
+          break;
+        case 'enter': // Zoom to focused node
+          if (selectedNode) {
+            selectAndCenter(selectedNode);
+          }
+          break;
+        case '?': // Toggle shortcuts panel
+          shortcutsPanel.classList.toggle('visible');
+          break;
+        case 'escape': // Close shortcuts panel
+          shortcutsPanel.classList.remove('visible');
+          break;
+      }
+    });
+
+    function selectAndCenter(node) {
+      selectedNode = node;
+      const targetZoom = Math.min(2, 400 / node.width);
+      const targetPanX = width / 2 - (node.x + node.width / 2) * targetZoom;
+      const targetPanY = height / 2 - (node.y + node.height / 2) * targetZoom;
+      animateTo(targetPanX, targetPanY, targetZoom);
+    }
+
+    // Check for hash on load (format: #handle/postId)
+    function loadFromHash() {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const match = hash.match(/^([^/]+)\/([a-zA-Z0-9]+)$/);
+        if (match) {
+          const [, handle, postId] = match;
+          urlInput.value = `https://bsky.app/profile/${handle}/post/${postId}`;
+          loadThread();
+        }
+      }
+    }
+
+    // Update hash when loading a thread
+    function updateHash(handle, postId) {
+      window.history.replaceState(null, '', `#${handle}/${postId}`);
+    }
+
+    // Listen for hash changes (back/forward navigation)
+    window.addEventListener('hashchange', loadFromHash);
+
+    // Initial render and check for hash
+    render();
+    loadFromHash();
+  </script>
+</body>
+</html>
