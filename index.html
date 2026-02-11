@@ -313,6 +313,41 @@
       return [];
     }
 
+    // Extract quoted post from embed
+    function getQuotedPost(embed) {
+      if (!embed) return null;
+      
+      // Direct quote
+      if (embed.$type === 'app.bsky.embed.record#view' && embed.record) {
+        const rec = embed.record;
+        if (rec.$type === 'app.bsky.embed.record#viewRecord') {
+          // Get images from the quoted post's embeds
+          let quotedImages = [];
+          if (rec.embeds && rec.embeds.length > 0) {
+            for (const e of rec.embeds) {
+              quotedImages = quotedImages.concat(getEmbedImages(e));
+            }
+          }
+          return {
+            did: rec.author.did,
+            handle: rec.author.handle,
+            displayName: rec.author.displayName || rec.author.handle,
+            avatar: rec.author.avatar,
+            text: rec.value?.text || '',
+            images: quotedImages,
+            uri: rec.uri
+          };
+        }
+      }
+      
+      // Record with media (quote + images on the quoting post)
+      if (embed.$type === 'app.bsky.embed.recordWithMedia#view' && embed.record) {
+        return getQuotedPost(embed.record);
+      }
+      
+      return null;
+    }
+
     // Build node tree from API response
     function buildTree(thread, parent = null, depth = 0) {
       if (!thread || thread.$type === 'app.bsky.feed.defs#blockedPost' || thread.$type === 'app.bsky.feed.defs#notFoundPost') {
@@ -323,10 +358,20 @@
       const author = post.author;
       const record = post.record;
       const images = getEmbedImages(post.embed);
+      const quotedPost = getQuotedPost(post.embed);
       
       const textHeight = measureTextHeight(record.text || '', NODE_WIDTH - NODE_PADDING * 2 - AVATAR_SIZE - 12, 14);
       const imageHeight = images.length > 0 ? IMAGE_MAX_HEIGHT + 10 : 0;
-      const nodeHeight = Math.max(NODE_MIN_HEIGHT, NODE_PADDING * 2 + AVATAR_SIZE + textHeight + imageHeight + 30);
+      
+      // Calculate quoted post height
+      let quotedHeight = 0;
+      if (quotedPost) {
+        const quotedTextHeight = measureTextHeight(quotedPost.text || '', NODE_WIDTH - NODE_PADDING * 3 - 30, 12);
+        const quotedImageHeight = quotedPost.images.length > 0 ? 80 : 0;
+        quotedHeight = 40 + quotedTextHeight + quotedImageHeight + 16; // header + text + images + padding
+      }
+      
+      const nodeHeight = Math.max(NODE_MIN_HEIGHT, NODE_PADDING * 2 + AVATAR_SIZE + textHeight + imageHeight + quotedHeight + 30);
 
       const node = {
         id: post.uri,
@@ -336,6 +381,7 @@
         avatar: author.avatar,
         text: record.text || '',
         images: images,
+        quotedPost: quotedPost,
         likes: post.likeCount || 0,
         replies: post.replyCount || 0,
         reposts: post.repostCount || 0,
@@ -376,6 +422,32 @@
           console.log('Failed to load image:', imgData.thumb);
         };
         img.src = imgData.thumb;
+      }
+
+      // Load quoted post avatar and images
+      if (quotedPost) {
+        if (quotedPost.avatar && !avatarImages.has(quotedPost.did)) {
+          const img = new Image();
+          img.onload = () => {
+            avatarImages.set(quotedPost.did, img);
+            render();
+          };
+          img.src = quotedPost.avatar;
+        }
+        
+        const quotedImgKey = node.id + '_quoted';
+        for (let i = 0; i < quotedPost.images.length; i++) {
+          const imgData = quotedPost.images[i];
+          const img = new Image();
+          img.onload = () => {
+            if (!embedImages.has(quotedImgKey)) {
+              embedImages.set(quotedImgKey, []);
+            }
+            embedImages.get(quotedImgKey)[i] = img;
+            render();
+          };
+          img.src = imgData.thumb;
+        }
       }
 
       // Process replies
@@ -627,6 +699,91 @@
               }
             }
           }
+        }
+
+        // Quoted post
+        let currentY = textEndY + 8;
+        if (node.images.length > 0) {
+          currentY += IMAGE_MAX_HEIGHT + 10;
+        }
+        
+        if (node.quotedPost) {
+          const qp = node.quotedPost;
+          const qx = x + NODE_PADDING;
+          const qw = w - NODE_PADDING * 2;
+          const qPadding = 10;
+          
+          // Calculate quoted content height
+          const qTextHeight = measureTextHeight(qp.text || '', qw - qPadding * 2 - 24, 12);
+          const qImgHeight = qp.images.length > 0 ? 70 : 0;
+          const qh = 32 + qTextHeight + qImgHeight + qPadding;
+          
+          // Quoted post background
+          roundRect(qx, currentY, qw, qh, 6);
+          ctx.fillStyle = '#1a1a2e';
+          ctx.fill();
+          ctx.strokeStyle = '#0f3460';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          // Quoted avatar (small)
+          const qAvatarSize = 20;
+          const qAvatarX = qx + qPadding;
+          const qAvatarY = currentY + qPadding;
+          
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(qAvatarX + qAvatarSize / 2, qAvatarY + qAvatarSize / 2, qAvatarSize / 2, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          
+          const qAvatarImg = avatarImages.get(qp.did);
+          if (qAvatarImg) {
+            ctx.drawImage(qAvatarImg, qAvatarX, qAvatarY, qAvatarSize, qAvatarSize);
+          } else {
+            ctx.fillStyle = '#1da1f2';
+            ctx.fill();
+          }
+          ctx.restore();
+          
+          // Quoted display name and handle
+          ctx.fillStyle = '#aaa';
+          ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+          const qNameX = qAvatarX + qAvatarSize + 6;
+          ctx.fillText(qp.displayName.slice(0, 20), qNameX, qAvatarY + 9);
+          
+          ctx.fillStyle = '#666';
+          ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText('@' + qp.handle.slice(0, 20), qNameX, qAvatarY + 22);
+          
+          // Quoted text
+          ctx.fillStyle = '#999';
+          ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+          const qTextX = qx + qPadding;
+          const qTextY = qAvatarY + qAvatarSize + 14;
+          const qTextEndY = wrapText(qp.text, qTextX, qTextY, qw - qPadding * 2, 16);
+          
+          // Quoted images (smaller)
+          if (qp.images.length > 0) {
+            const quotedImgKey = node.id + '_quoted';
+            const qNodeImages = embedImages.get(quotedImgKey) || [];
+            const qImgY = qTextEndY + 6;
+            const qImgW = 60;
+            const qImgH = 60;
+            
+            for (let i = 0; i < Math.min(3, qp.images.length); i++) {
+              if (qNodeImages[i]) {
+                const ix = qTextX + i * (qImgW + 4);
+                ctx.save();
+                roundRect(ix, qImgY, qImgW, qImgH, 4);
+                ctx.clip();
+                ctx.drawImage(qNodeImages[i], ix, qImgY, qImgW, qImgH);
+                ctx.restore();
+              }
+            }
+          }
+          
+          currentY += qh + 8;
         }
 
         // Stats bar
