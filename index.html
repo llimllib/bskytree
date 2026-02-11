@@ -74,6 +74,17 @@
       color: #e74c3c;
     }
 
+    .notification {
+      font-size: 13px;
+      color: #1da1f2;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .notification.show {
+      opacity: 1;
+    }
+
     .canvas-container {
       flex: 1;
       position: relative;
@@ -158,6 +169,8 @@
     <input type="text" id="urlInput" placeholder="Paste Bluesky post URL (e.g., https://bsky.app/profile/user.bsky.social/post/abc123)">
     <button id="loadBtn">Load Thread</button>
     <button id="clearBtn">Clear</button>
+    <button id="shareBtn">Share</button>
+    <span class="notification" id="notification">URL copied!</span>
     <span class="status" id="status"></span>
   </div>
   <div class="canvas-container">
@@ -189,6 +202,8 @@
     const urlInput = document.getElementById('urlInput');
     const loadBtn = document.getElementById('loadBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const notification = document.getElementById('notification');
     const statusEl = document.getElementById('status');
 
     // Canvas state
@@ -845,6 +860,17 @@
       panY = 0;
       zoom = 1;
       render();
+    });
+
+    shareBtn.addEventListener('click', () => {
+      if (window.location.hash) {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          notification.classList.add('show');
+          setTimeout(() => {
+            notification.classList.remove('show');
+          }, 1500);
+        });
+      }
     });
 
     // Shortcuts panel
