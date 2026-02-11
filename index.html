@@ -591,6 +591,33 @@
       return allNodes;
     }
 
+    // Format time for display
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'just now';
+      if (diffMins < 60) return `${diffMins}m`;
+      if (diffHours < 24) return `${diffHours}h`;
+      if (diffDays < 7) return `${diffDays}d`;
+      
+      // Show date for older posts
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // Convert AT URI to bsky.app URL
+    function atUriToBskyUrl(uri, handle) {
+      const match = uri.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/);
+      if (match) {
+        return `https://bsky.app/profile/${handle}/post/${match[2]}`;
+      }
+      return null;
+    }
+
     // Draw rounded rectangle
     function roundRect(x, y, w, h, r) {
       ctx.beginPath();
@@ -976,7 +1003,25 @@
         const statsY = y + h - NODE_PADDING - 4;
         ctx.fillStyle = '#666';
         ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.fillText(`♡ ${node.likes}  ⟲ ${node.reposts}  💬 ${node.replies}`, textX, statsY);
+        
+        // Format time
+        const timeStr = formatTime(node.createdAt);
+        const statsPrefix = `♡ ${node.likes}  ⟲ ${node.reposts}  💬 ${node.replies}  •  `;
+        ctx.fillText(statsPrefix, textX, statsY);
+        
+        // Draw time as a link (blue color)
+        const statsWidth = ctx.measureText(statsPrefix).width;
+        ctx.fillStyle = '#1da1f2';
+        ctx.fillText(timeStr, textX + statsWidth, statsY);
+        
+        // Store time link bounds for click detection
+        const timeWidth = ctx.measureText(timeStr).width;
+        node.timeLinkBounds = {
+          x: textX + statsWidth,
+          y: statsY - 12,
+          width: timeWidth,
+          height: 16
+        };
 
         // Collapse indicator
         if (node.children.length > 0) {
@@ -1213,6 +1258,22 @@
         panX = dragStartPanX + (e.offsetX - dragStartX);
         panY = dragStartPanY + (e.offsetY - dragStartY);
         render();
+      } else {
+        // Check if hovering over a time link
+        const node = hitTest(e.offsetX, e.offsetY);
+        if (node && node.timeLinkBounds) {
+          const worldX = (e.offsetX - panX) / zoom;
+          const worldY = (e.offsetY - panY) / zoom;
+          
+          if (worldX >= node.timeLinkBounds.x && 
+              worldX <= node.timeLinkBounds.x + node.timeLinkBounds.width &&
+              worldY >= node.timeLinkBounds.y && 
+              worldY <= node.timeLinkBounds.y + node.timeLinkBounds.height) {
+            canvas.style.cursor = 'pointer';
+            return;
+          }
+        }
+        canvas.style.cursor = 'default';
       }
     });
 
@@ -1220,10 +1281,26 @@
       if (isDragging) {
         const moved = Math.abs(e.offsetX - dragStartX) + Math.abs(e.offsetY - dragStartY);
         if (moved < 5) {
-          // It was a click - center and zoom to the node
+          // It was a click - check if on time link first
           const node = hitTest(e.offsetX, e.offsetY);
           if (node) {
-            selectAndCenter(node);
+            const worldX = (e.offsetX - panX) / zoom;
+            const worldY = (e.offsetY - panY) / zoom;
+            
+            if (node.timeLinkBounds && 
+                worldX >= node.timeLinkBounds.x && 
+                worldX <= node.timeLinkBounds.x + node.timeLinkBounds.width &&
+                worldY >= node.timeLinkBounds.y && 
+                worldY <= node.timeLinkBounds.y + node.timeLinkBounds.height) {
+              // Clicked on time link - open bsky.app
+              const url = atUriToBskyUrl(node.uri, node.handle);
+              if (url) {
+                window.open(url, '_blank');
+              }
+            } else {
+              // Clicked elsewhere on node - center and zoom
+              selectAndCenter(node);
+            }
           }
         }
       }
