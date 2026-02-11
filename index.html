@@ -157,6 +157,7 @@
   <div class="input-bar">
     <input type="text" id="urlInput" placeholder="Paste Bluesky post URL (e.g., https://bsky.app/profile/user.bsky.social/post/abc123)">
     <button id="loadBtn">Load Thread</button>
+    <button id="clearBtn">Clear</button>
     <span class="status" id="status"></span>
   </div>
   <div class="canvas-container">
@@ -187,6 +188,7 @@
     const ctx = canvas.getContext('2d');
     const urlInput = document.getElementById('urlInput');
     const loadBtn = document.getElementById('loadBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const statusEl = document.getElementById('status');
 
     // Canvas state
@@ -827,6 +829,22 @@
         loadThread();
         urlInput.blur();
       }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      urlInput.value = '';
+      nodes = [];
+      rootNode = null;
+      selectedNode = null;
+      avatarImages.clear();
+      embedImages.clear();
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+      window.history.replaceState(null, '', window.location.pathname);
+      panX = 0;
+      panY = 0;
+      zoom = 1;
+      render();
     });
 
     // Shortcuts panel
