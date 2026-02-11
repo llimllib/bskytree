@@ -220,6 +220,9 @@
     let nodes = [];
     let avatarImages = new Map();
     let embedImages = new Map();
+    
+    // Reskeet trees: array of { sourceNode, targetNode, tree, nodes }
+    let reskeetTrees = [];
 
     // Node dimensions
     const NODE_WIDTH = 320;
@@ -368,8 +371,31 @@
       return null;
     }
 
+    // Check if a post has a quote/reskeet that we should visualize
+    function getQuotedPostUri(embed) {
+      if (!embed) return null;
+      
+      // Direct quote
+      if (embed.$type === 'app.bsky.embed.record#view' && embed.record) {
+        const rec = embed.record;
+        if (rec.$type === 'app.bsky.embed.record#viewRecord') {
+          return rec.uri;
+        }
+      }
+      
+      // Record with media
+      if (embed.$type === 'app.bsky.embed.recordWithMedia#view' && embed.record?.record) {
+        const rec = embed.record.record;
+        if (rec.$type === 'app.bsky.embed.record#viewRecord') {
+          return rec.uri;
+        }
+      }
+      
+      return null;
+    }
+
     // Build node tree from API response
-    function buildTree(thread, parent = null, depth = 0) {
+    function buildTree(thread, parent = null, depth = 0, isReskeetTree = false) {
       if (!thread || thread.$type === 'app.bsky.feed.defs#blockedPost' || thread.$type === 'app.bsky.feed.defs#notFoundPost') {
         return null;
       }
@@ -414,7 +440,8 @@
         y: 0,
         width: NODE_WIDTH,
         height: nodeHeight,
-        collapsed: false
+        collapsed: false,
+        isReskeetTree: isReskeetTree
       };
 
       // Load avatar
@@ -473,7 +500,7 @@
       // Process replies
       if (thread.replies && thread.replies.length > 0) {
         for (const reply of thread.replies) {
-          const childNode = buildTree(reply, node, depth + 1);
+          const childNode = buildTree(reply, node, depth + 1, isReskeetTree);
           if (childNode) {
             node.children.push(childNode);
           }
@@ -639,9 +666,119 @@
           }
         }
       }
+      
+      // Draw reskeet tree edges
+      for (const reskeetTree of reskeetTrees) {
+        ctx.strokeStyle = '#2d4a3e'; // Slightly different color for reskeet trees
+        ctx.lineWidth = 2;
+        for (const node of reskeetTree.nodes) {
+          if (!node.collapsed) {
+            for (const child of node.children) {
+              const startX = node.x + node.width / 2;
+              const startY = node.y + node.height;
+              const endX = child.x + child.width / 2;
+              const endY = child.y;
+              
+              ctx.beginPath();
+              ctx.moveTo(startX, startY);
+              ctx.bezierCurveTo(
+                startX, startY + V_SPACING / 2,
+                endX, endY - V_SPACING / 2,
+                endX, endY
+              );
+              ctx.stroke();
+            }
+          }
+        }
+      }
+      
+      // Draw labels above reskeet trees
+      for (let i = 0; i < reskeetTrees.length; i++) {
+        const reskeetTree = reskeetTrees[i];
+        if (reskeetTree.nodes.length === 0) continue;
+        
+        // Find the root node (top-most node)
+        const rootNode = reskeetTree.root;
+        if (rootNode) {
+          ctx.fillStyle = '#666';
+          ctx.font = 'italic 12px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(
+            `Quoted Thread ${i + 1}`,
+            rootNode.x + rootNode.width / 2,
+            rootNode.y - 10
+          );
+          ctx.textAlign = 'left';
+        }
+      }
+      
+      // Draw arcs from quoted posts to their source trees
+      for (const reskeetTree of reskeetTrees) {
+        if (!reskeetTree.sourceNode || !reskeetTree.targetNode) continue;
+        
+        const source = reskeetTree.sourceNode;
+        const target = reskeetTree.targetNode;
+        
+        // Arc starts from the right side of the source node (where the quote is embedded)
+        const startX = source.x + source.width;
+        const startY = source.y + source.height * 0.7; // Lower part where quote usually is
+        
+        // Arc ends at the left side of the target node
+        const endX = target.x;
+        const endY = target.y + target.height / 2;
+        
+        // Draw a curved arc
+        ctx.strokeStyle = '#f59e0b'; // Amber/orange color for the arc
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 4]); // Dashed line
+        
+        const midX = (startX + endX) / 2;
+        const arcHeight = Math.min(150, Math.abs(endY - startY) * 0.5 + 50);
+        const controlY = Math.min(startY, endY) - arcHeight;
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.quadraticCurveTo(midX, controlY, endX, endY);
+        ctx.stroke();
+        
+        // Draw arrow at the end
+        ctx.setLineDash([]);
+        const angle = Math.atan2(endY - controlY, endX - midX);
+        const arrowSize = 12;
+        
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+          endX - arrowSize * Math.cos(angle - Math.PI / 6),
+          endY - arrowSize * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(
+          endX - arrowSize * Math.cos(angle + Math.PI / 6),
+          endY - arrowSize * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.stroke();
+        
+        // Draw "quotes" label at midpoint of arc
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.textAlign = 'center';
+        const labelX = midX;
+        const labelY = controlY - 8;
+        ctx.fillText('quotes', labelX, labelY);
+        ctx.textAlign = 'left';
+        
+        ctx.setLineDash([]);
+      }
+
+      // Collect all nodes to draw (main tree + reskeet trees)
+      const allNodesToDraw = [...nodes];
+      for (const reskeetTree of reskeetTrees) {
+        allNodesToDraw.push(...reskeetTree.nodes);
+      }
 
       // Draw nodes
-      for (const node of nodes) {
+      for (const node of allNodesToDraw) {
         const x = node.x;
         const y = node.y;
         const w = node.width;
@@ -649,10 +786,16 @@
 
         // Node background
         roundRect(x, y, w, h, 8);
-        ctx.fillStyle = '#16213e';
+        ctx.fillStyle = node.isReskeetTree ? '#1a2e24' : '#16213e'; // Slightly green tint for reskeet trees
         ctx.fill();
-        ctx.strokeStyle = node === selectedNode ? '#1da1f2' : '#0f3460';
-        ctx.lineWidth = node === selectedNode ? 3 : 1;
+        
+        // Check if this node is a reskeet target (pointed to by an arc)
+        const isReskeetTarget = reskeetTrees.some(rt => rt.targetNode === node);
+        
+        ctx.strokeStyle = node === selectedNode ? '#1da1f2' : 
+                          isReskeetTarget ? '#f59e0b' : 
+                          node.isReskeetTree ? '#2d5a4a' : '#0f3460';
+        ctx.lineWidth = node === selectedNode ? 3 : isReskeetTarget ? 2 : 1;
         ctx.stroke();
 
         // Avatar
@@ -872,17 +1015,170 @@
       return visible;
     }
 
+    // Find all nodes that have quoted posts (for reskeet visualization)
+    function findNodesWithQuotes(root) {
+      const result = [];
+      function traverse(node) {
+        if (node.quotedPost && node.quotedPost.uri) {
+          result.push({ node, quotedUri: node.quotedPost.uri });
+        }
+        for (const child of node.children) {
+          traverse(child);
+        }
+      }
+      if (root) traverse(root);
+      return result;
+    }
+
+    // Find a node by URI in a tree
+    function findNodeByUri(root, uri) {
+      if (root.id === uri || root.uri === uri) return root;
+      for (const child of root.children) {
+        const found = findNodeByUri(child, uri);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    // Load reskeet trees for all quoted posts
+    async function loadReskeetTrees(mainRoot) {
+      reskeetTrees = [];
+      const quotedNodes = findNodesWithQuotes(mainRoot);
+      
+      // Track which URIs we've already loaded to avoid duplicates
+      const loadedUris = new Set();
+      // Also track URIs that are already in the main tree
+      const mainTreeUris = new Set();
+      function collectUris(node) {
+        mainTreeUris.add(node.uri);
+        for (const child of node.children) {
+          collectUris(child);
+        }
+      }
+      collectUris(mainRoot);
+      
+      for (const { node, quotedUri } of quotedNodes) {
+        // Skip if this quoted post is already in our main tree
+        if (mainTreeUris.has(quotedUri)) continue;
+        // Skip if we've already loaded a tree containing this URI
+        if (loadedUris.has(quotedUri)) continue;
+        
+        try {
+          // Parse the AT URI
+          const match = quotedUri.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/);
+          if (!match) continue;
+          
+          const [, did, postId] = match;
+          
+          // Fetch the thread for this quoted post
+          const thread = await fetchThread(did, postId);
+          const root = findRoot(thread);
+          
+          // If we navigated up to a parent, fetch the root's full thread
+          let fullRoot = root;
+          if (root !== thread && root.post) {
+            const rootUri = root.post.uri;
+            const rootMatch = rootUri.match(/at:\/\/([^/]+)\/app\.bsky\.feed\.post\/(.+)/);
+            if (rootMatch) {
+              const rootThread = await fetchThread(rootMatch[1], rootMatch[2]);
+              fullRoot = rootThread;
+            }
+          }
+          
+          // Build the tree - use a flag to indicate it's a reskeet tree
+          const reskeetRoot = buildTree(fullRoot, null, 0, true);
+          if (!reskeetRoot) continue;
+          
+          // Mark all nodes in this tree as loaded
+          function markLoaded(n) {
+            loadedUris.add(n.uri);
+            for (const child of n.children) {
+              markLoaded(child);
+            }
+          }
+          markLoaded(reskeetRoot);
+          
+          // Find the target node (the quoted post) in this tree
+          const targetNode = findNodeByUri(reskeetRoot, quotedUri);
+          
+          reskeetTrees.push({
+            sourceNode: node,
+            targetNode: targetNode,
+            root: reskeetRoot,
+            nodes: []
+          });
+        } catch (err) {
+          console.log('Failed to load reskeet tree:', quotedUri, err);
+        }
+      }
+      
+      return reskeetTrees;
+    }
+
+    // Layout reskeet trees to the right of the main tree
+    function layoutReskeetTrees(mainNodes) {
+      if (reskeetTrees.length === 0) return;
+      
+      // Find the rightmost edge of the main tree
+      let maxX = 0;
+      for (const node of mainNodes) {
+        maxX = Math.max(maxX, node.x + node.width);
+      }
+      
+      const TREE_GAP = 150; // Gap between trees
+      let currentX = maxX + TREE_GAP;
+      
+      for (const reskeetTree of reskeetTrees) {
+        // Layout this tree
+        reskeetTree.nodes = layoutTree(reskeetTree.root);
+        reskeetTree.nodes = getVisibleNodes(reskeetTree.root);
+        layoutTree(reskeetTree.root);
+        reskeetTree.nodes = getVisibleNodes(reskeetTree.root);
+        
+        // Find the min X of this tree
+        let minX = Infinity;
+        for (const node of reskeetTree.nodes) {
+          minX = Math.min(minX, node.x);
+        }
+        
+        // Offset all nodes to position tree at currentX
+        const offsetX = currentX - minX;
+        for (const node of reskeetTree.nodes) {
+          node.x += offsetX;
+        }
+        
+        // Update currentX for next tree
+        let treeMaxX = 0;
+        for (const node of reskeetTree.nodes) {
+          treeMaxX = Math.max(treeMaxX, node.x + node.width);
+        }
+        currentX = treeMaxX + TREE_GAP;
+      }
+    }
+
     // Hit test
     function hitTest(screenX, screenY) {
       const x = (screenX - panX) / zoom;
       const y = (screenY - panY) / zoom;
       
+      // Check main tree nodes
       for (const node of nodes) {
         if (x >= node.x && x <= node.x + node.width &&
             y >= node.y && y <= node.y + node.height) {
           return node;
         }
       }
+      
+      // Check reskeet tree nodes
+      for (const reskeetTree of reskeetTrees) {
+        for (const node of reskeetTree.nodes) {
+          if (x >= node.x && x <= node.x + node.width &&
+              y >= node.y && y <= node.y + node.height) {
+            return node;
+          }
+        }
+      }
+      
       return null;
     }
 
@@ -1022,12 +1318,26 @@
         
         // Select root node
         selectedNode = rootNode;
+        
+        statusEl.textContent = `Loaded ${nodes.length} posts. Loading quoted post trees...`;
+        render();
+        
+        // Load reskeet trees for quoted posts
+        await loadReskeetTrees(rootNode);
+        
+        // Layout reskeet trees to the right of main tree
+        layoutReskeetTrees(nodes);
 
-        // Center the tree
-        const minX = Math.min(...nodes.map(n => n.x));
-        const maxX = Math.max(...nodes.map(n => n.x + n.width));
-        const minY = Math.min(...nodes.map(n => n.y));
-        const maxY = Math.max(...nodes.map(n => n.y + n.height));
+        // Center the tree (including reskeet trees)
+        let allNodes = [...nodes];
+        for (const rt of reskeetTrees) {
+          allNodes = allNodes.concat(rt.nodes);
+        }
+        
+        const minX = Math.min(...allNodes.map(n => n.x));
+        const maxX = Math.max(...allNodes.map(n => n.x + n.width));
+        const minY = Math.min(...allNodes.map(n => n.y));
+        const maxY = Math.max(...allNodes.map(n => n.y + n.height));
         
         const treeWidth = maxX - minX;
         const treeHeight = maxY - minY;
@@ -1040,7 +1350,10 @@
         panX = (width - treeWidth * zoom) / 2 - minX * zoom;
         panY = 50;
 
-        statusEl.textContent = `Loaded ${nodes.length} posts`;
+        const totalPosts = allNodes.length;
+        const reskeetCount = reskeetTrees.length;
+        statusEl.textContent = `Loaded ${nodes.length} posts` + 
+          (reskeetCount > 0 ? ` + ${reskeetCount} quoted thread${reskeetCount > 1 ? 's' : ''} (${totalPosts - nodes.length} posts)` : '');
         render();
       } catch (err) {
         statusEl.className = 'status error';
@@ -1064,6 +1377,7 @@
       nodes = [];
       rootNode = null;
       selectedNode = null;
+      reskeetTrees = [];
       avatarImages.clear();
       embedImages.clear();
       statusEl.textContent = '';
@@ -1180,11 +1494,16 @@
           if (shortcutsPanel.classList.contains('visible')) {
             shortcutsPanel.classList.remove('visible');
           } else if (nodes.length > 0) {
-            // Zoom to fit entire tree
-            const minX = Math.min(...nodes.map(n => n.x));
-            const maxX = Math.max(...nodes.map(n => n.x + n.width));
-            const minY = Math.min(...nodes.map(n => n.y));
-            const maxY = Math.max(...nodes.map(n => n.y + n.height));
+            // Zoom to fit entire tree (including reskeet trees)
+            let allNodes = [...nodes];
+            for (const rt of reskeetTrees) {
+              allNodes = allNodes.concat(rt.nodes);
+            }
+            
+            const minX = Math.min(...allNodes.map(n => n.x));
+            const maxX = Math.max(...allNodes.map(n => n.x + n.width));
+            const minY = Math.min(...allNodes.map(n => n.y));
+            const maxY = Math.max(...allNodes.map(n => n.y + n.height));
             
             const treeWidth = maxX - minX;
             const treeHeight = maxY - minY;
