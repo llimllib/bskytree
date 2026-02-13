@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "name": "Open in bskytree",
+  "version": "1.0.0",
+  "description": "Open Bluesky posts in bskytree thread visualizer",
+  "author": "Bill Mill",
+  "homepage_url": "https://github.com/llimllib/bskytree",
+
+  "permissions": ["contextMenus", "activeTab"],
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://bsky.app/*"],
+      "js": ["content.js"],
+      "css": ["content.css"]
+    }
+  ],
+
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "bskytree@billmill.org"
+    }
+  }
+}
