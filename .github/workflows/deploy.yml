@@ -39,7 +39,7 @@ jobs:
       - name: Upload to DigitalOcean Spaces
         run: |
           aws s3 sync . s3://btree.space/ \
-            --endpoint-url https://sfo3.digitaloceanspaces.com \
+            --endpoint-url https://nyc3.digitaloceanspaces.com \
             --acl public-read \
             --delete \
             --exclude ".git/*" \
