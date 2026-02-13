@@ -1,6 +1,6 @@
 # bskytree Browser Extension
 
-A Firefox extension to open Bluesky posts in the [bskytree](https://llimllib.github.io/bskytree) thread visualizer.
+A Firefox extension to open Bluesky posts in the [bskytree](https://btree.space) thread visualizer.
 
 ## Features
 
@@ -28,12 +28,13 @@ Then submit to [Firefox Add-ons](https://addons.mozilla.org/) or install as a si
 ## Configuration
 
 To change the bskytree URL, edit the `BSKYTREE_BASE_URL` constant in both:
+
 - `background.js` (line 2)
 - `content.js` (line 2)
 
 ## Icons
 
-The extension needs icons at `icons/icon-48.png` and `icons/icon-96.png`. 
+The extension needs icons at `icons/icon-48.png` and `icons/icon-96.png`.
 
 You can create simple ones or use any tree-themed icon. The extension will work without icons, but Firefox will show a default placeholder.
 

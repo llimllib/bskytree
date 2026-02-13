@@ -1,5 +1,5 @@
 // Configuration - change this URL as needed
-const BSKYTREE_BASE_URL = "https://llimllib.github.io/bskytree";
+const BSKYTREE_BASE_URL = "https://btree.space";
 
 // Parse bsky URL path to extract handle and postId
 function parsePostPath(path) {
@@ -46,20 +46,20 @@ function getPostUrlFromItem(feedItem) {
 function injectButtonIntoItem(feedItem) {
   // Skip if already has our button
   if (feedItem.querySelector(".bskytree-btn")) return;
-  
+
   // Find the like button to insert next to
   const likeBtn = feedItem.querySelector('[data-testid="likeBtn"]');
   if (!likeBtn) return;
-  
+
   // Get the post info
   const postInfo = getPostUrlFromItem(feedItem);
   if (!postInfo) return;
-  
+
   // Create wrapper div to match other buttons
   const wrapper = document.createElement("div");
   wrapper.className = "bskytree-wrapper";
   wrapper.style.cssText = "flex: 1 1 0%; align-items: flex-start;";
-  
+
   const btn = createTreeButton();
   btn.addEventListener("click", (e) => {
     e.preventDefault();
@@ -67,9 +67,9 @@ function injectButtonIntoItem(feedItem) {
     const url = buildBskytreeUrl(postInfo.handle, postInfo.postId);
     window.open(url, "_blank");
   });
-  
+
   wrapper.appendChild(btn);
-  
+
   // Insert after the like button's parent wrapper
   const likeWrapper = likeBtn.closest('[style*="flex: 1 1 0%"]');
   if (likeWrapper && likeWrapper.parentElement) {
@@ -81,7 +81,7 @@ function injectButtonIntoItem(feedItem) {
 function processAllFeedItems() {
   const feedItems = document.querySelectorAll('[data-testid^="feedItem-by-"]');
   feedItems.forEach(injectButtonIntoItem);
-  
+
   // Also handle single post view pages
   const postPage = document.querySelector('[data-testid="postThreadItem"]');
   if (postPage) {
@@ -109,5 +109,5 @@ const observer = new MutationObserver((mutations) => {
 
 observer.observe(document.body, {
   childList: true,
-  subtree: true
+  subtree: true,
 });

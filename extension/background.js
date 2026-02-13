@@ -1,5 +1,5 @@
 // Configuration - change this URL as needed
-const BSKYTREE_BASE_URL = "https://llimllib.github.io/bskytree";
+const BSKYTREE_BASE_URL = "https://btree.space";
 
 // Parse bsky.app URL to extract handle and postId
 function parseBskyUrl(url) {
@@ -20,17 +20,17 @@ browser.contextMenus.create({
   id: "open-in-bskytree",
   title: "Open in bskytree",
   contexts: ["page", "link"],
-  documentUrlPatterns: ["*://bsky.app/*"]
+  documentUrlPatterns: ["*://bsky.app/*"],
 });
 
 // Handle context menu clicks
 browser.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== "open-in-bskytree") return;
-  
+
   // Use link URL if right-clicked on a link, otherwise use page URL
   const url = info.linkUrl || info.pageUrl;
   const parsed = parseBskyUrl(url);
-  
+
   if (parsed) {
     const bskytreeUrl = buildBskytreeUrl(parsed.handle, parsed.postId);
     browser.tabs.create({ url: bskytreeUrl });
