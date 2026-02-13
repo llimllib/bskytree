@@ -35,3 +35,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Upload to DigitalOcean Spaces
+        run: |
+          aws s3 sync . s3://bsky-space/ \
+            --endpoint-url https://sfo3.digitaloceanspaces.com \
+            --acl public-read \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
+          AWS_DEFAULT_REGION: us-east-1
+
+      - name: Purge DigitalOcean CDN Cache
+        run: |
+          curl -X DELETE \
+            -H "Authorization: Bearer ${{ secrets.DO_CDN_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"files": ["*"]}' \
+            "https://api.digitalocean.com/v2/cdn/endpoints/${{ secrets.DO_BSKY_SPACES_ID }}/cache"
