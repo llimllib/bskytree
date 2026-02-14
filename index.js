@@ -1156,8 +1156,11 @@ async function loadThread() {
     layoutTree(rootNode);
     nodes = getVisibleNodes(rootNode);
 
-    // Select root node
+    // Select root node and initialize history
     selectedNode = rootNode;
+    navigationHistory.length = 0;
+    historyIndex = -1;
+    pushHistory(rootNode);
 
     statusEl.textContent = `Loaded ${nodes.length} posts. Loading quoted post trees...`;
     render();
@@ -1232,6 +1235,8 @@ clearBtn.addEventListener("click", () => {
   rootNode = null;
   selectedNode = null;
   reskeetTrees = [];
+  navigationHistory.length = 0;
+  historyIndex = -1;
   nodesContainer.innerHTML = "";
   statusEl.textContent = "";
   statusEl.className = "status";
@@ -1271,6 +1276,35 @@ document.addEventListener("click", (e) => {
 // Keyboard navigation
 let selectedNode = null;
 
+// Navigation history for undo/redo
+const navigationHistory = [];
+let historyIndex = -1;
+let isUndoRedo = false; // Flag to prevent pushing during undo/redo
+
+function pushHistory(node) {
+  if (isUndoRedo) return;
+  // Don't push if it's the same as the current position
+  if (historyIndex >= 0 && navigationHistory[historyIndex] === node) return;
+  // Remove any forward history when pushing new entry
+  navigationHistory.splice(historyIndex + 1);
+  navigationHistory.push(node);
+  historyIndex = navigationHistory.length - 1;
+}
+
+function canUndo() {
+  return historyIndex > 0;
+}
+
+function canRedo() {
+  return historyIndex < navigationHistory.length - 1;
+}
+
+function navigateTo(node) {
+  if (!node) return;
+  pushHistory(node);
+  selectAndCenter(node);
+}
+
 document.addEventListener("keydown", (e) => {
   // Ignore if typing in input
   if (e.target === urlInput) return;
@@ -1303,7 +1337,7 @@ document.addEventListener("keydown", (e) => {
         const siblings = selectedNode.parent.children;
         const idx = siblings.indexOf(selectedNode);
         if (idx > 0) {
-          selectAndCenter(siblings[idx - 1]);
+          navigateTo(siblings[idx - 1]);
         }
       }
       break;
@@ -1313,7 +1347,7 @@ document.addEventListener("keydown", (e) => {
         const siblings = selectedNode.parent.children;
         const idx = siblings.indexOf(selectedNode);
         if (idx < siblings.length - 1) {
-          selectAndCenter(siblings[idx + 1]);
+          navigateTo(siblings[idx + 1]);
         }
       }
       break;
@@ -1325,18 +1359,18 @@ document.addEventListener("keydown", (e) => {
         !selectedNode.collapsed
       ) {
         const midIdx = Math.floor(selectedNode.children.length / 2);
-        selectAndCenter(selectedNode.children[midIdx]);
+        navigateTo(selectedNode.children[midIdx]);
       }
       break;
     case "k":
     case "arrowup": // Parent
       if (selectedNode?.parent) {
-        selectAndCenter(selectedNode.parent);
+        navigateTo(selectedNode.parent);
       }
       break;
     case "g": // Jump to root
       if (rootNode) {
-        selectAndCenter(rootNode);
+        navigateTo(rootNode);
       }
       break;
     case "f": // Follow to quoted post
@@ -1352,8 +1386,24 @@ document.addEventListener("keydown", (e) => {
           }
         }
         if (targetNode) {
-          selectAndCenter(targetNode);
+          navigateTo(targetNode);
         }
+      }
+      break;
+    case "u": // Undo navigation
+      if (canUndo()) {
+        historyIndex--;
+        isUndoRedo = true;
+        selectAndCenter(navigationHistory[historyIndex]);
+        isUndoRedo = false;
+      }
+      break;
+    case "r": // Redo navigation
+      if (canRedo()) {
+        historyIndex++;
+        isUndoRedo = true;
+        selectAndCenter(navigationHistory[historyIndex]);
+        isUndoRedo = false;
       }
       break;
     case "enter": // Zoom to focused node
