@@ -1339,6 +1339,23 @@ document.addEventListener("keydown", (e) => {
         selectAndCenter(rootNode);
       }
       break;
+    case "f": // Follow to quoted post
+      if (selectedNode?.quotedPost?.uri) {
+        const quotedUri = selectedNode.quotedPost.uri;
+        // Search in main tree
+        let targetNode = findNodeByUri(rootNode, quotedUri);
+        // Search in reskeet trees if not found
+        if (!targetNode) {
+          for (const rt of reskeetTrees) {
+            targetNode = findNodeByUri(rt.root, quotedUri);
+            if (targetNode) break;
+          }
+        }
+        if (targetNode) {
+          selectAndCenter(targetNode);
+        }
+      }
+      break;
     case "enter": // Zoom to focused node
       if (selectedNode) {
         selectAndCenter(selectedNode);
