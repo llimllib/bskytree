@@ -93,6 +93,9 @@
 
     canvas {
       display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
     .help {
@@ -110,6 +113,272 @@
     }
 
     .help a:hover {
+      text-decoration: underline;
+    }
+
+    /* DOM-based post nodes */
+    #nodes-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .post-node {
+      position: absolute;
+      width: 320px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 8px;
+      padding: 12px;
+      pointer-events: auto;
+      cursor: default;
+      box-sizing: border-box;
+    }
+
+    .post-node.selected {
+      border-color: #1da1f2;
+      border-width: 3px;
+    }
+
+    .post-node.reskeet-tree {
+      background: #1a2e24;
+      border-color: #2d5a4a;
+    }
+
+    .post-node.reskeet-target {
+      border-color: #f59e0b;
+      border-width: 2px;
+    }
+
+    .post-header {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .post-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #1da1f2;
+      flex-shrink: 0;
+      object-fit: cover;
+    }
+
+    .post-author {
+      min-width: 0;
+    }
+
+    .post-display-name {
+      font-weight: bold;
+      font-size: 14px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .post-handle {
+      font-size: 12px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .post-text {
+      font-size: 14px;
+      color: #ddd;
+      line-height: 1.4;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      margin-bottom: 8px;
+    }
+
+    .post-text a {
+      color: #1da1f2;
+      text-decoration: none;
+    }
+
+    .post-text a:hover {
+      text-decoration: underline;
+    }
+
+    .post-text .mention {
+      color: #1da1f2;
+    }
+
+    .post-text .hashtag {
+      color: #1da1f2;
+    }
+
+    .post-images {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .post-images.single {
+      grid-template-columns: 1fr;
+    }
+
+    .post-images.multiple {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .post-images img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .post-images.single img {
+      height: 180px;
+    }
+
+    .post-images.multiple img {
+      height: 90px;
+    }
+
+    .post-external {
+      display: flex;
+      gap: 8px;
+      background: #1a1a2e;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .post-external:hover {
+      border-color: #1da1f2;
+    }
+
+    .post-external-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 4px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #2a2a4e;
+    }
+
+    .post-external-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .post-external-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #1da1f2;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .post-external-desc {
+      font-size: 11px;
+      color: #888;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .post-external .play-button {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      background: rgba(0,0,0,0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      left: 24px;
+      top: 24px;
+    }
+
+    .post-external .play-button::after {
+      content: '';
+      border-style: solid;
+      border-width: 6px 0 6px 10px;
+      border-color: transparent transparent transparent #fff;
+      margin-left: 2px;
+    }
+
+    .post-quote {
+      background: #1a1a2e;
+      border: 1px solid #0f3460;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .post-quote .post-header {
+      margin-bottom: 6px;
+    }
+
+    .post-quote .post-avatar {
+      width: 20px;
+      height: 20px;
+    }
+
+    .post-quote .post-display-name {
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    .post-quote .post-handle {
+      font-size: 11px;
+    }
+
+    .post-quote .post-text {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .post-quote .post-images img {
+      height: 70px;
+    }
+
+    .post-stats {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .post-stats a {
+      color: #1da1f2;
+      text-decoration: none;
+    }
+
+    .post-stats a:hover {
+      text-decoration: underline;
+    }
+
+    .post-collapse {
+      color: #1da1f2;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: auto;
+    }
+
+    .post-collapse:hover {
       text-decoration: underline;
     }
 
@@ -223,6 +492,7 @@
   </div>
   <div class="canvas-container">
     <canvas id="canvas"></canvas>
+    <div id="nodes-container"></div>
     <div class="help">
       Scroll to zoom • Drag to pan • Click node to focus
       • <a id="shortcutsLink">Keyboard shortcuts</a>
@@ -255,12 +525,71 @@
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const nodesContainer = document.getElementById('nodes-container');
     const urlInput = document.getElementById('urlInput');
     const loadBtn = document.getElementById('loadBtn');
     const clearBtn = document.getElementById('clearBtn');
     const shareBtn = document.getElementById('shareBtn');
     const notification = document.getElementById('notification');
     const statusEl = document.getElementById('status');
+
+    // Parse facets and render rich text
+    function renderRichText(text, facets) {
+      if (!facets || facets.length === 0) {
+        return escapeHtml(text);
+      }
+
+      // Convert string to byte array for proper slicing
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      const bytes = encoder.encode(text);
+
+      // Sort facets by start position
+      const sortedFacets = [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart);
+
+      let result = '';
+      let lastEnd = 0;
+
+      for (const facet of sortedFacets) {
+        const { byteStart, byteEnd } = facet.index;
+        
+        // Add text before this facet
+        if (byteStart > lastEnd) {
+          result += escapeHtml(decoder.decode(bytes.slice(lastEnd, byteStart)));
+        }
+
+        // Get the facet text
+        const facetText = decoder.decode(bytes.slice(byteStart, byteEnd));
+        
+        // Process facet features
+        for (const feature of facet.features) {
+          if (feature.$type === 'app.bsky.richtext.facet#link') {
+            result += `<a href="${escapeHtml(feature.uri)}" target="_blank" rel="noopener">${escapeHtml(facetText)}</a>`;
+          } else if (feature.$type === 'app.bsky.richtext.facet#mention') {
+            result += `<a href="https://bsky.app/profile/${escapeHtml(feature.did)}" target="_blank" rel="noopener" class="mention">${escapeHtml(facetText)}</a>`;
+          } else if (feature.$type === 'app.bsky.richtext.facet#tag') {
+            result += `<a href="https://bsky.app/hashtag/${escapeHtml(feature.tag)}" target="_blank" rel="noopener" class="hashtag">${escapeHtml(facetText)}</a>`;
+          } else {
+            result += escapeHtml(facetText);
+          }
+        }
+
+        lastEnd = byteEnd;
+      }
+
+      // Add remaining text
+      if (lastEnd < bytes.length) {
+        result += escapeHtml(decoder.decode(bytes.slice(lastEnd)));
+      }
+
+      return result;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
 
     // Canvas state
     let width, height;
@@ -272,8 +601,6 @@
 
     // Tree state
     let nodes = [];
-    let avatarImages = new Map();
-    let embedImages = new Map();
     
     // Reskeet trees: array of { sourceNode, targetNode, tree, nodes }
     let reskeetTrees = [];
@@ -281,11 +608,8 @@
     // Node dimensions
     const NODE_WIDTH = 320;
     const NODE_MIN_HEIGHT = 100;
-    const NODE_PADDING = 12;
-    const AVATAR_SIZE = 40;
     const H_SPACING = 20;
     const V_SPACING = 30;
-    const IMAGE_MAX_HEIGHT = 180;
 
     // Tree limits to prevent runaway threads
     const MAX_NODES = 500;
@@ -335,25 +659,6 @@
     }
 
     // Measure text height for wrapping
-    function measureTextHeight(text, maxWidth, fontSize) {
-      ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      const words = text.split(' ');
-      let lines = 1;
-      let currentLine = '';
-      
-      for (const word of words) {
-        const testLine = currentLine ? currentLine + ' ' + word : word;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && currentLine) {
-          lines++;
-          currentLine = word;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      return lines * (fontSize + 4);
-    }
-
     // Extract images from embed
     function getEmbedImages(embed) {
       if (!embed) return [];
@@ -494,26 +799,8 @@
       const quotedPost = getQuotedPost(post.embed);
       const externalEmbed = getExternalEmbed(post.embed);
       
-      const textHeight = measureTextHeight(record.text || '', NODE_WIDTH - NODE_PADDING * 2 - AVATAR_SIZE - 12, 14);
-      const imageHeight = images.length > 0 ? IMAGE_MAX_HEIGHT + 10 : 0;
-      
-      // Calculate external embed height (thumbnail + title + description)
-      let externalHeight = 0;
-      if (externalEmbed) {
-        const titleHeight = externalEmbed.title ? 18 : 0;
-        const descHeight = externalEmbed.description ? measureTextHeight(externalEmbed.description.slice(0, 100), NODE_WIDTH - NODE_PADDING * 2 - 80, 11) : 0;
-        externalHeight = Math.max(60, titleHeight + descHeight + 20) + 10; // thumbnail height + padding
-      }
-      
-      // Calculate quoted post height
-      let quotedHeight = 0;
-      if (quotedPost) {
-        const quotedTextHeight = measureTextHeight(quotedPost.text || '', NODE_WIDTH - NODE_PADDING * 3 - 30, 12);
-        const quotedImageHeight = quotedPost.images.length > 0 ? 80 : 0;
-        quotedHeight = 40 + quotedTextHeight + quotedImageHeight + 16; // header + text + images + padding
-      }
-      
-      const nodeHeight = Math.max(NODE_MIN_HEIGHT, NODE_PADDING * 2 + AVATAR_SIZE + textHeight + imageHeight + externalHeight + quotedHeight + 30);
+      // Height will be measured from DOM later
+      const nodeHeight = NODE_MIN_HEIGHT;
 
       const node = {
         id: post.uri,
@@ -522,6 +809,7 @@
         displayName: author.displayName || author.handle,
         avatar: author.avatar,
         text: record.text || '',
+        facets: record.facets || [],
         images: images,
         quotedPost: quotedPost,
         externalEmbed: externalEmbed,
@@ -538,75 +826,9 @@
         width: NODE_WIDTH,
         height: nodeHeight,
         collapsed: false,
-        isReskeetTree: isReskeetTree
+        isReskeetTree: isReskeetTree,
+        element: null  // Will hold DOM element
       };
-
-      // Load avatar
-      if (author.avatar) {
-        const img = new Image();
-        img.onload = () => {
-          avatarImages.set(author.did, img);
-          render();
-        };
-        img.src = author.avatar;
-      }
-
-      // Load embed images (no crossOrigin needed, we just display them)
-      for (let i = 0; i < images.length; i++) {
-        const imgData = images[i];
-        const img = new Image();
-        img.onload = () => {
-          if (!embedImages.has(node.id)) {
-            embedImages.set(node.id, []);
-          }
-          embedImages.get(node.id)[i] = img;
-          render();
-        };
-        img.onerror = () => {
-          console.log('Failed to load image:', imgData.thumb);
-        };
-        img.src = imgData.thumb;
-      }
-
-      // Load quoted post avatar and images
-      if (quotedPost) {
-        if (quotedPost.avatar && !avatarImages.has(quotedPost.did)) {
-          const img = new Image();
-          img.onload = () => {
-            avatarImages.set(quotedPost.did, img);
-            render();
-          };
-          img.src = quotedPost.avatar;
-        }
-        
-        const quotedImgKey = node.id + '_quoted';
-        for (let i = 0; i < quotedPost.images.length; i++) {
-          const imgData = quotedPost.images[i];
-          const img = new Image();
-          img.onload = () => {
-            if (!embedImages.has(quotedImgKey)) {
-              embedImages.set(quotedImgKey, []);
-            }
-            embedImages.get(quotedImgKey)[i] = img;
-            render();
-          };
-          img.src = imgData.thumb;
-        }
-      }
-
-      // Load external embed thumbnail
-      if (externalEmbed && externalEmbed.thumb) {
-        const externalImgKey = node.id + '_external';
-        const img = new Image();
-        img.onload = () => {
-          embedImages.set(externalImgKey, img);
-          render();
-        };
-        img.onerror = () => {
-          console.log('Failed to load external thumb:', externalEmbed.thumb);
-        };
-        img.src = externalEmbed.thumb;
-      }
 
       // Process replies
       if (thread.replies && thread.replies.length > 0) {
@@ -775,47 +997,227 @@
       return null;
     }
 
-    // Draw rounded rectangle
-    function roundRect(x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
+    // Create DOM element for a post node
+    function createNodeElement(node) {
+      const el = document.createElement('div');
+      el.className = 'post-node';
+      if (node.isReskeetTree) {
+        el.classList.add('reskeet-tree');
+      }
+      el.dataset.nodeId = node.id;
+
+      // Build HTML
+      let html = `
+        <div class="post-header">
+          <img class="post-avatar" src="${node.avatar || ''}" alt="" onerror="this.style.background='#1da1f2'">
+          <div class="post-author">
+            <div class="post-display-name">${escapeHtml(node.displayName.slice(0, 25))}</div>
+            <div class="post-handle">@${escapeHtml(node.handle.slice(0, 28))}</div>
+          </div>
+        </div>
+        <div class="post-text">${renderRichText(node.text, node.facets)}</div>
+      `;
+
+      // Images
+      if (node.images.length > 0) {
+        const gridClass = node.images.length === 1 ? 'single' : 'multiple';
+        html += `<div class="post-images ${gridClass}">`;
+        for (let i = 0; i < Math.min(4, node.images.length); i++) {
+          html += `<img src="${node.images[i].thumb}" alt="${escapeHtml(node.images[i].alt || '')}" loading="lazy">`;
+        }
+        html += '</div>';
+      }
+
+      // External embed
+      if (node.externalEmbed) {
+        const ext = node.externalEmbed;
+        const videoId = getYouTubeVideoId(ext.uri);
+        html += `
+          <a class="post-external" href="${escapeHtml(ext.uri)}" target="_blank" rel="noopener" ${videoId ? `data-video-id="${videoId}"` : ''}>
+            ${ext.thumb ? `<img class="post-external-thumb" src="${ext.thumb}" alt="">` : '<div class="post-external-thumb"></div>'}
+            ${videoId ? '<div class="play-button"></div>' : ''}
+            <div class="post-external-info">
+              ${ext.title ? `<div class="post-external-title">${escapeHtml(ext.title)}</div>` : ''}
+              ${ext.description ? `<div class="post-external-desc">${escapeHtml(ext.description.slice(0, 100))}</div>` : ''}
+            </div>
+          </a>
+        `;
+      }
+
+      // Quoted post
+      if (node.quotedPost) {
+        const qp = node.quotedPost;
+        html += `
+          <div class="post-quote">
+            <div class="post-header">
+              <img class="post-avatar" src="${qp.avatar || ''}" alt="" onerror="this.style.background='#1da1f2'">
+              <div class="post-author">
+                <div class="post-display-name">${escapeHtml(qp.displayName.slice(0, 20))}</div>
+                <div class="post-handle">@${escapeHtml(qp.handle.slice(0, 20))}</div>
+              </div>
+            </div>
+            <div class="post-text">${escapeHtml(qp.text)}</div>
+        `;
+        if (qp.images.length > 0) {
+          html += '<div class="post-images multiple">';
+          for (let i = 0; i < Math.min(3, qp.images.length); i++) {
+            html += `<img src="${qp.images[i].thumb}" alt="" loading="lazy">`;
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      // Stats
+      const timeStr = formatTime(node.createdAt);
+      const bskyUrl = atUriToBskyUrl(node.uri, node.handle);
+      html += `
+        <div class="post-stats">
+          <span>♡ ${node.likes}</span>
+          <span>⟲ ${node.reposts}</span>
+          <span>💬 ${node.replies}</span>
+          <span>•</span>
+          <a href="${bskyUrl}" target="_blank" rel="noopener">${timeStr}</a>
+          ${node.children.length > 0 ? `<span class="post-collapse" data-node-id="${node.id}">${node.collapsed ? '+' + countDescendants(node) : '−'}</span>` : ''}
+        </div>
+      `;
+
+      el.innerHTML = html;
+
+      // Handle YouTube video clicks
+      const extLink = el.querySelector('.post-external[data-video-id]');
+      if (extLink) {
+        extLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          showVideoPlayer(extLink.dataset.videoId);
+        });
+      }
+
+      // Handle collapse button
+      const collapseBtn = el.querySelector('.post-collapse');
+      if (collapseBtn) {
+        collapseBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          node.collapsed = !node.collapsed;
+          collapseBtn.textContent = node.collapsed ? '+' + countDescendants(node) : '−';
+          updateVisibleNodes();
+          render();
+        });
+      }
+
+      // Click to select/center
+      el.addEventListener('click', (e) => {
+        // Don't handle if clicking a link
+        if (e.target.closest('a')) return;
+        selectAndCenter(node);
+      });
+
+      return el;
     }
 
-    // Draw text with word wrap
-    function wrapText(text, x, y, maxWidth, lineHeight) {
-      const words = text.split(' ');
-      let line = '';
-      let currentY = y;
+    // Update visible nodes after collapse/expand
+    function updateVisibleNodes() {
+      layoutTree(rootNode);
+      nodes = getVisibleNodes(rootNode);
       
-      for (const word of words) {
-        const testLine = line ? line + ' ' + word : word;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && line) {
-          ctx.fillText(line, x, currentY);
-          line = word;
-          currentY += lineHeight;
-        } else {
-          line = testLine;
+      // Update reskeet trees too
+      for (const rt of reskeetTrees) {
+        layoutTree(rt.root);
+        rt.nodes = getVisibleNodes(rt.root);
+      }
+      layoutReskeetTrees(nodes);
+      
+      // Update DOM - hide/show elements
+      updateNodeElements();
+    }
+
+    // Create/update all node DOM elements
+    function updateNodeElements() {
+      // Collect all visible nodes
+      let allVisible = [...nodes];
+      for (const rt of reskeetTrees) {
+        allVisible = allVisible.concat(rt.nodes);
+      }
+      
+      const visibleIds = new Set(allVisible.map(n => n.id));
+      
+      // Remove elements for nodes that are no longer visible
+      for (const el of nodesContainer.querySelectorAll('.post-node')) {
+        if (!visibleIds.has(el.dataset.nodeId)) {
+          el.remove();
         }
       }
-      ctx.fillText(line, x, currentY);
-      return currentY + lineHeight;
+      
+      // Add/update elements for visible nodes
+      for (const node of allVisible) {
+        if (!node.element || !node.element.parentNode) {
+          node.element = createNodeElement(node);
+          nodesContainer.appendChild(node.element);
+        }
+        
+        // Update position
+        node.element.style.left = node.x + 'px';
+        node.element.style.top = node.y + 'px';
+        
+        // Set z-index so parents appear above children (prevents overlap issues)
+        // Higher depth = lower z-index
+        node.element.style.zIndex = 1000 - node.depth;
+        
+        // Update selection state
+        node.element.classList.toggle('selected', node === selectedNode);
+        
+        // Update reskeet target state
+        const isReskeetTarget = reskeetTrees.some(rt => rt.targetNode === node);
+        node.element.classList.toggle('reskeet-target', isReskeetTarget);
+      }
     }
 
+    // Create DOM elements for all nodes and measure their heights
+    function createAndMeasureNodes(root) {
+      const allNodes = [];
+      
+      function traverse(node) {
+        allNodes.push(node);
+        for (const child of node.children) {
+          traverse(child);
+        }
+      }
+      traverse(root);
+      
+      // Create elements and add to DOM (hidden) to measure
+      // Reset transform so measurements are accurate
+      nodesContainer.style.transform = 'none';
+      nodesContainer.style.visibility = 'hidden';
+      nodesContainer.style.display = 'block';
+      
+      for (const node of allNodes) {
+        if (!node.element) {
+          node.element = createNodeElement(node);
+          node.element.style.position = 'absolute';
+          node.element.style.left = '0';
+          node.element.style.top = '0';
+          nodesContainer.appendChild(node.element);
+        }
+      }
+      
+      // Force layout
+      nodesContainer.offsetHeight;
+      
+      // Measure heights
+      for (const node of allNodes) {
+        node.height = Math.max(NODE_MIN_HEIGHT, node.element.offsetHeight);
+      }
+      
+      nodesContainer.style.visibility = '';
+    }
+
+    // Draw rounded rectangle
     // Render everything
     function render() {
       ctx.clearRect(0, 0, width, height);
       
       if (nodes.length === 0) {
+        nodesContainer.style.display = 'none';
         ctx.fillStyle = '#666';
         ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
         ctx.textAlign = 'center';
@@ -823,6 +1225,14 @@
         ctx.textAlign = 'left';
         return;
       }
+
+      nodesContainer.style.display = 'block';
+      
+      // Update DOM container transform
+      nodesContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+      
+      // Update node positions in DOM
+      updateNodeElements();
 
       ctx.save();
       ctx.translate(panX, panY);
@@ -948,352 +1358,6 @@
         ctx.setLineDash([]);
       }
 
-      // Collect all nodes to draw (main tree + reskeet trees)
-      const allNodesToDraw = [...nodes];
-      for (const reskeetTree of reskeetTrees) {
-        allNodesToDraw.push(...reskeetTree.nodes);
-      }
-
-      // Draw nodes
-      for (const node of allNodesToDraw) {
-        const x = node.x;
-        const y = node.y;
-        const w = node.width;
-        const h = node.height;
-
-        // Node background
-        roundRect(x, y, w, h, 8);
-        ctx.fillStyle = node.isReskeetTree ? '#1a2e24' : '#16213e'; // Slightly green tint for reskeet trees
-        ctx.fill();
-        
-        // Check if this node is a reskeet target (pointed to by an arc)
-        const isReskeetTarget = reskeetTrees.some(rt => rt.targetNode === node);
-        
-        ctx.strokeStyle = node === selectedNode ? '#1da1f2' : 
-                          isReskeetTarget ? '#f59e0b' : 
-                          node.isReskeetTree ? '#2d5a4a' : '#0f3460';
-        ctx.lineWidth = node === selectedNode ? 3 : isReskeetTarget ? 2 : 1;
-        ctx.stroke();
-
-        // Avatar
-        const avatarX = x + NODE_PADDING;
-        const avatarY = y + NODE_PADDING;
-        
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(avatarX + AVATAR_SIZE / 2, avatarY + AVATAR_SIZE / 2, AVATAR_SIZE / 2, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        
-        const avatarImg = avatarImages.get(node.did);
-        if (avatarImg) {
-          ctx.drawImage(avatarImg, avatarX, avatarY, AVATAR_SIZE, AVATAR_SIZE);
-        } else {
-          ctx.fillStyle = '#1da1f2';
-          ctx.fill();
-        }
-        ctx.restore();
-
-        // Display name
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
-        const nameX = avatarX + AVATAR_SIZE + 10;
-        ctx.fillText(node.displayName.slice(0, 25), nameX, avatarY + 16);
-
-        // Handle
-        ctx.fillStyle = '#888';
-        ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-        ctx.fillText('@' + node.handle.slice(0, 28), nameX, avatarY + 32);
-
-        // Post text
-        ctx.fillStyle = '#ddd';
-        ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
-        const textX = x + NODE_PADDING;
-        const textY = avatarY + AVATAR_SIZE + 20;
-        const textMaxWidth = w - NODE_PADDING * 2;
-        const textEndY = wrapText(node.text, textX, textY, textMaxWidth, 18);
-
-        // Embed images
-        if (node.images.length > 0) {
-          const nodeImages = embedImages.get(node.id) || [];
-          const imgY = textEndY + 8;
-          const imgAreaWidth = w - NODE_PADDING * 2;
-          const imgGap = 4;
-          
-          if (node.images.length === 1 && nodeImages[0]) {
-            // Single image - full width
-            const img = nodeImages[0];
-            const aspectRatio = node.images[0].aspectRatio;
-            let imgW = imgAreaWidth;
-            let imgH = IMAGE_MAX_HEIGHT;
-            
-            if (aspectRatio) {
-              const ratio = aspectRatio.width / aspectRatio.height;
-              if (imgW / ratio > imgH) {
-                imgW = imgH * ratio;
-              } else {
-                imgH = imgW / ratio;
-              }
-            }
-            
-            ctx.save();
-            roundRect(textX, imgY, imgW, Math.min(imgH, IMAGE_MAX_HEIGHT), 6);
-            ctx.clip();
-            ctx.drawImage(img, textX, imgY, imgW, imgH);
-            ctx.restore();
-          } else if (node.images.length > 1) {
-            // Multiple images - grid
-            const cols = Math.min(2, node.images.length);
-            const singleW = (imgAreaWidth - imgGap * (cols - 1)) / cols;
-            const singleH = IMAGE_MAX_HEIGHT / 2;
-            
-            for (let i = 0; i < Math.min(4, node.images.length); i++) {
-              if (nodeImages[i]) {
-                const col = i % 2;
-                const row = Math.floor(i / 2);
-                const ix = textX + col * (singleW + imgGap);
-                const iy = imgY + row * (singleH + imgGap);
-                
-                ctx.save();
-                roundRect(ix, iy, singleW, singleH, 4);
-                ctx.clip();
-                ctx.drawImage(nodeImages[i], ix, iy, singleW, singleH);
-                ctx.restore();
-              }
-            }
-          }
-        }
-
-        // Track current Y position for stacking embeds
-        let currentY = textEndY + 8;
-        if (node.images.length > 0) {
-          currentY += IMAGE_MAX_HEIGHT + 10;
-        }
-
-        // External embed (YouTube, links, etc.)
-        if (node.externalEmbed) {
-          const ext = node.externalEmbed;
-          const extX = x + NODE_PADDING;
-          const extW = w - NODE_PADDING * 2;
-          const extPadding = 8;
-          const thumbSize = 60;
-          
-          // Calculate height based on content
-          const titleHeight = ext.title ? 16 : 0;
-          const descHeight = ext.description ? measureTextHeight(ext.description.slice(0, 100), extW - thumbSize - extPadding * 3, 11) : 0;
-          const extH = Math.max(thumbSize + extPadding * 2, titleHeight + descHeight + extPadding * 2 + 8);
-          
-          // External embed background
-          roundRect(extX, currentY, extW, extH, 6);
-          ctx.fillStyle = '#1a1a2e';
-          ctx.fill();
-          ctx.strokeStyle = '#0f3460';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          
-          // Thumbnail
-          const externalImgKey = node.id + '_external';
-          const extThumb = embedImages.get(externalImgKey);
-          const thumbX = extX + extPadding;
-          const thumbY = currentY + extPadding;
-          
-          const isYouTube = getYouTubeVideoId(ext.uri) !== null;
-          
-          if (extThumb) {
-            ctx.save();
-            roundRect(thumbX, thumbY, thumbSize, thumbSize, 4);
-            ctx.clip();
-            ctx.drawImage(extThumb, thumbX, thumbY, thumbSize, thumbSize);
-            ctx.restore();
-            
-            // Draw play button overlay for YouTube videos
-            if (isYouTube) {
-              const playX = thumbX + thumbSize / 2;
-              const playY = thumbY + thumbSize / 2;
-              const playRadius = 14;
-              
-              // Semi-transparent circle
-              ctx.beginPath();
-              ctx.arc(playX, playY, playRadius, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-              ctx.fill();
-              
-              // Play triangle
-              ctx.beginPath();
-              ctx.moveTo(playX - 5, playY - 7);
-              ctx.lineTo(playX - 5, playY + 7);
-              ctx.lineTo(playX + 7, playY);
-              ctx.closePath();
-              ctx.fillStyle = '#fff';
-              ctx.fill();
-            }
-          } else {
-            // Placeholder
-            roundRect(thumbX, thumbY, thumbSize, thumbSize, 4);
-            ctx.fillStyle = '#2a2a4e';
-            ctx.fill();
-            ctx.fillStyle = '#666';
-            ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('🔗', thumbX + thumbSize / 2, thumbY + thumbSize / 2 + 7);
-            ctx.textAlign = 'left';
-          }
-          
-          // Title
-          const extTextX = thumbX + thumbSize + extPadding;
-          const extTextMaxW = extW - thumbSize - extPadding * 3;
-          let extTextY = thumbY + 12;
-          
-          if (ext.title) {
-            ctx.fillStyle = '#1da1f2';
-            ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
-            // Truncate title to fit available width
-            let truncatedTitle = ext.title;
-            while (ctx.measureText(truncatedTitle).width > extTextMaxW && truncatedTitle.length > 0) {
-              truncatedTitle = truncatedTitle.slice(0, -1);
-            }
-            if (truncatedTitle.length < ext.title.length) {
-              truncatedTitle = truncatedTitle.slice(0, -3) + '...';
-            }
-            ctx.fillText(truncatedTitle, extTextX, extTextY);
-            extTextY += 16;
-          }
-          
-          // Description
-          if (ext.description) {
-            ctx.fillStyle = '#888';
-            ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
-            const truncatedDesc = ext.description.slice(0, 80) + (ext.description.length > 80 ? '...' : '');
-            wrapText(truncatedDesc, extTextX, extTextY, extTextMaxW, 14);
-          }
-          
-          // Store bounds for click detection
-          node.externalLinkBounds = {
-            x: extX,
-            y: currentY,
-            width: extW,
-            height: extH,
-            uri: ext.uri
-          };
-          
-          currentY += extH + 8;
-        }
-
-        // Quoted post
-        if (node.quotedPost) {
-          const qp = node.quotedPost;
-          const qx = x + NODE_PADDING;
-          const qw = w - NODE_PADDING * 2;
-          const qPadding = 10;
-          
-          // Calculate quoted content height
-          const qTextHeight = measureTextHeight(qp.text || '', qw - qPadding * 2 - 24, 12);
-          const qImgHeight = qp.images.length > 0 ? 70 : 0;
-          const qh = 32 + qTextHeight + qImgHeight + qPadding;
-          
-          // Quoted post background
-          roundRect(qx, currentY, qw, qh, 6);
-          ctx.fillStyle = '#1a1a2e';
-          ctx.fill();
-          ctx.strokeStyle = '#0f3460';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          
-          // Quoted avatar (small)
-          const qAvatarSize = 20;
-          const qAvatarX = qx + qPadding;
-          const qAvatarY = currentY + qPadding;
-          
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(qAvatarX + qAvatarSize / 2, qAvatarY + qAvatarSize / 2, qAvatarSize / 2, 0, Math.PI * 2);
-          ctx.closePath();
-          ctx.clip();
-          
-          const qAvatarImg = avatarImages.get(qp.did);
-          if (qAvatarImg) {
-            ctx.drawImage(qAvatarImg, qAvatarX, qAvatarY, qAvatarSize, qAvatarSize);
-          } else {
-            ctx.fillStyle = '#1da1f2';
-            ctx.fill();
-          }
-          ctx.restore();
-          
-          // Quoted display name and handle
-          ctx.fillStyle = '#aaa';
-          ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
-          const qNameX = qAvatarX + qAvatarSize + 6;
-          ctx.fillText(qp.displayName.slice(0, 20), qNameX, qAvatarY + 9);
-          
-          ctx.fillStyle = '#666';
-          ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillText('@' + qp.handle.slice(0, 20), qNameX, qAvatarY + 22);
-          
-          // Quoted text
-          ctx.fillStyle = '#999';
-          ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-          const qTextX = qx + qPadding;
-          const qTextY = qAvatarY + qAvatarSize + 14;
-          const qTextEndY = wrapText(qp.text, qTextX, qTextY, qw - qPadding * 2, 16);
-          
-          // Quoted images (smaller)
-          if (qp.images.length > 0) {
-            const quotedImgKey = node.id + '_quoted';
-            const qNodeImages = embedImages.get(quotedImgKey) || [];
-            const qImgY = qTextEndY + 6;
-            const qImgW = 60;
-            const qImgH = 60;
-            
-            for (let i = 0; i < Math.min(3, qp.images.length); i++) {
-              if (qNodeImages[i]) {
-                const ix = qTextX + i * (qImgW + 4);
-                ctx.save();
-                roundRect(ix, qImgY, qImgW, qImgH, 4);
-                ctx.clip();
-                ctx.drawImage(qNodeImages[i], ix, qImgY, qImgW, qImgH);
-                ctx.restore();
-              }
-            }
-          }
-          
-          currentY += qh + 8;
-        }
-
-        // Stats bar
-        const statsY = y + h - NODE_PADDING - 4;
-        ctx.fillStyle = '#666';
-        ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-        
-        // Format time
-        const timeStr = formatTime(node.createdAt);
-        const statsPrefix = `♡ ${node.likes}  ⟲ ${node.reposts}  💬 ${node.replies}  •  `;
-        ctx.fillText(statsPrefix, textX, statsY);
-        
-        // Draw time as a link (blue color)
-        const statsWidth = ctx.measureText(statsPrefix).width;
-        ctx.fillStyle = '#1da1f2';
-        ctx.fillText(timeStr, textX + statsWidth, statsY);
-        
-        // Store time link bounds for click detection
-        const timeWidth = ctx.measureText(timeStr).width;
-        node.timeLinkBounds = {
-          x: textX + statsWidth,
-          y: statsY - 12,
-          width: timeWidth,
-          height: 16
-        };
-
-        // Collapse indicator
-        if (node.children.length > 0) {
-          const indicator = node.collapsed ? `+${countDescendants(node)}` : '−';
-          ctx.fillStyle = '#1da1f2';
-          ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'right';
-          ctx.fillText(indicator, x + w - NODE_PADDING, statsY);
-          ctx.textAlign = 'left';
-        }
-      }
-
       ctx.restore();
     }
 
@@ -1410,6 +1474,9 @@
           // Find the target node (the quoted post) in this tree
           const targetNode = findNodeByUri(reskeetRoot, quotedUri);
           
+          // Create DOM elements and measure heights
+          createAndMeasureNodes(reskeetRoot);
+          
           reskeetTrees.push({
             sourceNode: node,
             targetNode: targetNode,
@@ -1439,8 +1506,6 @@
       
       for (const reskeetTree of reskeetTrees) {
         // Layout this tree
-        reskeetTree.nodes = layoutTree(reskeetTree.root);
-        reskeetTree.nodes = getVisibleNodes(reskeetTree.root);
         layoutTree(reskeetTree.root);
         reskeetTree.nodes = getVisibleNodes(reskeetTree.root);
         
@@ -1466,31 +1531,6 @@
     }
 
     // Hit test
-    function hitTest(screenX, screenY) {
-      const x = (screenX - panX) / zoom;
-      const y = (screenY - panY) / zoom;
-      
-      // Check main tree nodes
-      for (const node of nodes) {
-        if (x >= node.x && x <= node.x + node.width &&
-            y >= node.y && y <= node.y + node.height) {
-          return node;
-        }
-      }
-      
-      // Check reskeet tree nodes
-      for (const reskeetTree of reskeetTrees) {
-        for (const node of reskeetTree.nodes) {
-          if (x >= node.x && x <= node.x + node.width &&
-              y >= node.y && y <= node.y + node.height) {
-            return node;
-          }
-        }
-      }
-      
-      return null;
-    }
-
     // Event handlers
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -1522,78 +1562,10 @@
         panX = dragStartPanX + (e.offsetX - dragStartX);
         panY = dragStartPanY + (e.offsetY - dragStartY);
         render();
-      } else {
-        // Check if hovering over a clickable element
-        const node = hitTest(e.offsetX, e.offsetY);
-        if (node) {
-          const worldX = (e.offsetX - panX) / zoom;
-          const worldY = (e.offsetY - panY) / zoom;
-          
-          // Check time link
-          if (node.timeLinkBounds && 
-              worldX >= node.timeLinkBounds.x && 
-              worldX <= node.timeLinkBounds.x + node.timeLinkBounds.width &&
-              worldY >= node.timeLinkBounds.y && 
-              worldY <= node.timeLinkBounds.y + node.timeLinkBounds.height) {
-            canvas.style.cursor = 'pointer';
-            return;
-          }
-          
-          // Check external embed link
-          if (node.externalLinkBounds && 
-              worldX >= node.externalLinkBounds.x && 
-              worldX <= node.externalLinkBounds.x + node.externalLinkBounds.width &&
-              worldY >= node.externalLinkBounds.y && 
-              worldY <= node.externalLinkBounds.y + node.externalLinkBounds.height) {
-            canvas.style.cursor = 'pointer';
-            return;
-          }
-        }
-        canvas.style.cursor = 'default';
       }
     });
 
     canvas.addEventListener('mouseup', (e) => {
-      if (isDragging) {
-        const moved = Math.abs(e.offsetX - dragStartX) + Math.abs(e.offsetY - dragStartY);
-        if (moved < 5) {
-          // It was a click - check clickable elements
-          const node = hitTest(e.offsetX, e.offsetY);
-          if (node) {
-            const worldX = (e.offsetX - panX) / zoom;
-            const worldY = (e.offsetY - panY) / zoom;
-            
-            // Check time link
-            if (node.timeLinkBounds && 
-                worldX >= node.timeLinkBounds.x && 
-                worldX <= node.timeLinkBounds.x + node.timeLinkBounds.width &&
-                worldY >= node.timeLinkBounds.y && 
-                worldY <= node.timeLinkBounds.y + node.timeLinkBounds.height) {
-              // Clicked on time link - open bsky.app
-              const url = atUriToBskyUrl(node.uri, node.handle);
-              if (url) {
-                window.open(url, '_blank');
-              }
-            } else if (node.externalLinkBounds && 
-                worldX >= node.externalLinkBounds.x && 
-                worldX <= node.externalLinkBounds.x + node.externalLinkBounds.width &&
-                worldY >= node.externalLinkBounds.y && 
-                worldY <= node.externalLinkBounds.y + node.externalLinkBounds.height) {
-              // Clicked on external embed - check if it's a YouTube video
-              const videoId = getYouTubeVideoId(node.externalLinkBounds.uri);
-              if (videoId) {
-                showVideoPlayer(videoId);
-              } else {
-                // Not YouTube, open in new tab
-                window.open(node.externalLinkBounds.uri, '_blank');
-              }
-            } else {
-              // Clicked elsewhere on node - center and zoom
-              selectAndCenter(node);
-            }
-          }
-        }
-      }
       isDragging = false;
       canvas.style.cursor = 'default';
     });
@@ -1642,8 +1614,7 @@
       statusEl.className = 'status';
       statusEl.textContent = 'Loading...';
       nodes = [];
-      avatarImages.clear();
-      embedImages.clear();
+      nodesContainer.innerHTML = '';
       render();
 
       try {
@@ -1673,6 +1644,7 @@
         }
         
         nodeCount = 0; // Reset node count before building tree
+        
         rootNode = buildTree(root);
         
         if (!rootNode) {
@@ -1681,8 +1653,10 @@
         
         const limitReached = nodeCount >= MAX_NODES;
 
-        nodes = layoutTree(rootNode);
-        nodes = getVisibleNodes(rootNode);
+        // Create DOM elements and measure heights before layout
+        statusEl.textContent = 'Measuring nodes...';
+        createAndMeasureNodes(rootNode);
+
         layoutTree(rootNode);
         nodes = getVisibleNodes(rootNode);
         
@@ -1754,8 +1728,7 @@
       rootNode = null;
       selectedNode = null;
       reskeetTrees = [];
-      avatarImages.clear();
-      embedImages.clear();
+      nodesContainer.innerHTML = '';
       statusEl.textContent = '';
       statusEl.className = 'status';
       window.history.replaceState(null, '', window.location.pathname);
