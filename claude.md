@@ -13,9 +13,20 @@ firefox-extension/
 │   ├── content.css      # Button styling (matches bsky.app style)
 │   └── icons/           # Extension icons (48x48, 96x96 PNG)
 ├── index.html           # Main bskytree visualizer (served at btree.space)
+├── index.js             # Main visualizer JavaScript (external script)
 ├── transcripts/         # AI session transcripts for PRs
 └── mise.toml            # Environment config (contains secrets - DO NOT COMMIT)
 ```
+
+## Code Quality
+
+All JavaScript code must pass biome linting with no errors or warnings before committing:
+
+```bash
+make lint
+```
+
+This runs `npx @biomejs/biome check index.js`. Fix any issues before submitting PRs.
 
 ## Development
 
