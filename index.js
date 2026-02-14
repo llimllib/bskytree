@@ -1182,13 +1182,21 @@ async function loadThread() {
     const treeWidth = maxX - minX;
     const treeHeight = maxY - minY;
 
-    // Fit tree in view
+    // Fit tree in view, but don't zoom out so far that nodes become unreadable
     const scaleX = (width - 100) / treeWidth;
     const scaleY = (height - 100) / treeHeight;
-    zoom = Math.min(1, Math.min(scaleX, scaleY));
+    const fitZoom = Math.min(1, Math.min(scaleX, scaleY));
 
-    panX = (width - treeWidth * zoom) / 2 - minX * zoom;
-    panY = 50;
+    // If the tree fits reasonably, show it all; otherwise zoom to root node
+    const minReadableZoom = 0.3;
+    if (fitZoom >= minReadableZoom) {
+      zoom = fitZoom;
+      panX = (width - treeWidth * zoom) / 2 - minX * zoom;
+      panY = 50;
+    } else {
+      // Tree is too large - zoom to root node instead
+      selectAndCenter(rootNode);
+    }
 
     const totalPosts = allNodes.length;
     const reskeetCount = reskeetTrees.length;
@@ -1414,5 +1422,9 @@ function updateHash(handle, postId) {
 window.addEventListener("hashchange", loadFromHash);
 
 // Initial render and check for hash
+// Use requestAnimationFrame to ensure layout is complete before loading
 render();
-loadFromHash();
+requestAnimationFrame(() => {
+  resizeCanvas();
+  loadFromHash();
+});
