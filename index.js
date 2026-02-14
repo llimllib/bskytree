@@ -1384,9 +1384,11 @@ function selectAndCenter(node) {
   const zoomToFitHeight = maxHeight / node.height;
   const targetZoom = Math.min(1.5, zoomToFitWidth, zoomToFitHeight);
 
-  // Center the node
+  // Position the node near the top (horizontally centered, vertically near top)
+  // Use more padding but clamp so we don't push too far down on small screens
+  const topPadding = Math.min(100, height * 0.15);
   const targetPanX = width / 2 - (node.x + node.width / 2) * targetZoom;
-  const targetPanY = height / 2 - (node.y + node.height / 2) * targetZoom;
+  const targetPanY = topPadding - node.y * targetZoom;
   animateTo(targetPanX, targetPanY, targetZoom);
 }
 
