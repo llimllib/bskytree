@@ -27,12 +27,11 @@
 
   "browser_specific_settings": {
     "gecko": {
-      "id": "bskytree@billmill.org"
+      "id": "bskytree@billmill.org",
+      "data_collection_permissions": {
+        "required": false,
+        "disclosure": "This extension does not collect any user data."
+      }
     }
-  },
-
-  "data_collection_permissions": {
-    "required": false,
-    "disclosure": "This extension does not collect any user data."
   }
 }
