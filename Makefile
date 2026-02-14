@@ -1,8 +1,7 @@
 .PHONY: extension clean
 
-extension: bskytree-extension.zip
-
-bskytree-extension.zip: extension/*
+extension:
+	rm -f bskytree-extension.zip
 	cd extension && zip -r ../bskytree-extension.zip *
 
 clean:
