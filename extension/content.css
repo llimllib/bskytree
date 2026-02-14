@@ -1,0 +1,22 @@
+/* bskytree button - matches bsky.app's action button style */
+.bskytree-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border: none;
+  border-radius: 999px;
+  background-color: transparent;
+  cursor: pointer;
+  color: rgb(111, 131, 159);
+  transition: color 0.15s ease;
+}
+
+.bskytree-btn:hover {
+  color: #1da1f2;
+}
+
+.bskytree-btn svg {
+  pointer-events: none;
+}
