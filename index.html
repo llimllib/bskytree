@@ -1878,10 +1878,10 @@
       const maxWidth = width - padding * 2;
       const maxHeight = height - padding * 2;
       
-      // Zoom to fit both width and height, capped at 1 (no zoom in past 100%)
+      // Zoom to fit both width and height, capped at 1.5 for comfortable reading
       const zoomToFitWidth = maxWidth / node.width;
       const zoomToFitHeight = maxHeight / node.height;
-      const targetZoom = Math.min(1, zoomToFitWidth, zoomToFitHeight);
+      const targetZoom = Math.min(1.5, zoomToFitWidth, zoomToFitHeight);
       
       // Center the node
       const targetPanX = width / 2 - (node.x + node.width / 2) * targetZoom;
