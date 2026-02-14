@@ -43,7 +43,15 @@ jobs:
             --acl public-read \
             --delete \
             --exclude ".git/*" \
-            --exclude ".github/*"
+            --exclude ".github/*" \
+            --exclude "node_modules/*" \
+            --exclude "package*.json" \
+            --exclude "biome.json" \
+            --exclude "Makefile" \
+            --exclude "claude.md" \
+            --exclude "transcripts/*" \
+            --exclude "docs/*" \
+            --exclude "*.md"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET }}
