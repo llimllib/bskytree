@@ -29,9 +29,7 @@
     "gecko": {
       "id": "bskytree@billmill.org",
       "data_collection_permissions": {
-        "required": [],
-        "optional": [],
-        "disclosure": "This extension does not collect any user data."
+        "required": ["none"]
       }
     }
   }
