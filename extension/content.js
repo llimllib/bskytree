@@ -72,7 +72,7 @@ function injectButtonIntoItem(feedItem) {
 
   // Insert after the like button's parent wrapper
   const likeWrapper = likeBtn.closest('[style*="flex: 1 1 0%"]');
-  if (likeWrapper && likeWrapper.parentElement) {
+  if (likeWrapper?.parentElement) {
     likeWrapper.parentElement.insertBefore(wrapper, likeWrapper.nextSibling);
   }
 }
@@ -82,11 +82,12 @@ function processAllFeedItems() {
   const feedItems = document.querySelectorAll('[data-testid^="feedItem-by-"]');
   feedItems.forEach(injectButtonIntoItem);
 
-  // Also handle single post view pages
-  const postPage = document.querySelector('[data-testid="postThreadItem"]');
-  if (postPage) {
-    injectButtonIntoItem(postPage);
-  }
+  // Also handle thread view pages (individual post pages)
+  // The testid format is "postThreadItem-by-{handle}"
+  const threadItems = document.querySelectorAll(
+    '[data-testid^="postThreadItem-by-"]',
+  );
+  threadItems.forEach(injectButtonIntoItem);
 }
 
 // Initial processing

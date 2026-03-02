@@ -69,7 +69,7 @@ The bskytree URL format is: `https://btree.space/#handle/postId`
 
 Buttons are injected after the like button wrapper using `data-testid` selectors:
 - Feed items: `[data-testid^="feedItem-by-"]`
-- Thread view: `[data-testid="postThreadItem"]`
+- Thread view: `[data-testid^="postThreadItem-by-"]`
 
 ### Configuration
 
