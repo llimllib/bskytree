@@ -24,7 +24,7 @@ browser.contextMenus.create({
 });
 
 // Handle context menu clicks
-browser.contextMenus.onClicked.addListener((info, tab) => {
+browser.contextMenus.onClicked.addListener((info, _tab) => {
   if (info.menuItemId !== "open-in-bskytree") return;
 
   // Use link URL if right-clicked on a link, otherwise use page URL
