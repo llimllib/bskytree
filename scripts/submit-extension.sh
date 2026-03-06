@@ -12,4 +12,7 @@ AMO_KEY=$(bw get item "Mozilla add-on API Credentials" --session "$BW_SESSION" |
 AMO_SECRET=$(bw get item "Mozilla add-on API Credentials" --session "$BW_SESSION" |
   jq -r '.fields[] | select(.name == "api-secret") | .value')
 
+echo "Submitting extension to AMO. This can take like 5 minutes or so"
 npx web-ext sign --channel=listed --api-key="$AMO_KEY" --api-secret="$AMO_SECRET" --source-dir=extension/
+
+echo "Extension uploaded. Review status: https://addons.mozilla.org/en-US/developers/addons"
